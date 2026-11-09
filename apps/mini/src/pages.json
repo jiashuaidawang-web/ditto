@@ -1,0 +1,30 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/index",
+      "style": { "navigationBarTitleText": "登录" }
+    },
+    {
+      "path": "pages/verify/index",
+      "style": { "navigationBarTitleText": "学生认证" }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": { "navigationBarTitleText": "资料与空闲" }
+    },
+    {
+      "path": "pages/match/index",
+      "style": { "navigationBarTitleText": "周三 Drop" }
+    },
+    {
+      "path": "pages/confirm/index",
+      "style": { "navigationBarTitleText": "确认见面" }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "Ditto",
+    "navigationBarBackgroundColor": "#F4EFE8",
+    "backgroundColor": "#F4EFE8"
+  }
+}
