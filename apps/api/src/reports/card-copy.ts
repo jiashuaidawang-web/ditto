@@ -4,8 +4,8 @@ const INTEREST_LABEL: Record<string, string> = {
   cooking: '做饭',
   music: '音乐',
   travel: '旅行',
-  reading: '读书',
-  gym: '运动',
+  reading: '阅读',
+  gym: '健身',
   gaming: '游戏',
   movies: '影视',
   art: '艺术',
@@ -23,7 +23,7 @@ export function interestList(preferences: unknown): string[] {
 /** One sentence for the report card. No scores, no contact details. */
 export function oneLineReason(gradeGap: number, interestsA: string[], interestsB: string[]): string {
   const shared = interestsA.find((item) => interestsB.includes(item))
-  const label = shared ? INTEREST_LABEL[shared] : ''
+  const label = shared ? labelOf(shared) : ''
   if (label) return `同校，年级差 ${gradeGap}，都喜欢${label}`
   return `同校，年级差 ${gradeGap}，这周可以见面`
 }
@@ -46,6 +46,11 @@ export function gradeLabel(grade: number | null | undefined): string {
 
 export function publicReportUrl(base: string, token: string): string {
   return `${base.replace(/\/$/, '')}/m/${token}`
+}
+
+function labelOf(id: string): string {
+  if (id.startsWith('custom:')) return id.slice('custom:'.length)
+  return INTEREST_LABEL[id] ?? ''
 }
 
 function clock(parts: ShanghaiDateParts): string {

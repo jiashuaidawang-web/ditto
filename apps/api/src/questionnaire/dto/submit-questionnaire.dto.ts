@@ -1,16 +1,4 @@
-import { IsArray, IsIn, IsInt, IsOptional, IsString, Max, Min, MinLength } from 'class-validator'
-
-export class InterestBranchDto {
-  @IsString()
-  hobby!: string
-
-  @IsString()
-  style!: string
-
-  @IsOptional()
-  @IsString()
-  detail?: string
-}
+import { IsArray, IsIn, IsInt, IsObject, IsOptional, IsString, Max, Min, MinLength } from 'class-validator'
 
 export class SubmitQuestionnaireDto {
   @IsString()
@@ -31,21 +19,15 @@ export class SubmitQuestionnaireDto {
   @IsIn(['life_partner', 'serious', 'casual', 'friends', 'unsure'])
   intent!: string
 
+  /** English hobby ids in tap order, plus `custom:<text>` chips. */
   @IsArray()
   @IsString({ each: true })
   interests!: string[]
 
+  /** Specialty picks keyed by hobby. Values are option ids or `other:<text>`. */
   @IsOptional()
-  @IsString()
-  branchHobby?: string
-
-  @IsOptional()
-  @IsString()
-  branchStyle?: string
-
-  @IsOptional()
-  @IsString()
-  branchDetail?: string
+  @IsObject()
+  specialties?: Record<string, string[]>
 
   @IsArray()
   @IsString({ each: true })
