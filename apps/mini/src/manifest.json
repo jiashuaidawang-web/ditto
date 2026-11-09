@@ -1,7 +1,7 @@
 {
   "name": "不如见一面",
   "appid": "__UNI__DITTO01",
-  "description": "校园周三 Drop 匹配",
+  "description": "不如见一面 · 本周见面方案",
   "versionName": "0.1.0",
   "versionCode": "100",
   "vueVersion": "3",
@@ -19,7 +19,7 @@
     "usingComponents": true
   },
   "h5": {
-    "title": "Ditto",
+    "title": "不如见一面",
     "router": {
       "mode": "hash",
       "base": "/"

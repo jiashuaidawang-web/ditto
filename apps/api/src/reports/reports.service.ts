@@ -129,7 +129,7 @@ export class ReportsService {
       token,
       url,
       brand: '不如见一面' as const,
-      kicker: '周三 Drop',
+      kicker: '本周见面方案',
       youName: you.profile?.displayName || '你',
       peerName: peer.profile?.displayName || 'TA',
       schoolName: peer.profile?.schoolName || '同校',

@@ -6,7 +6,7 @@
       <button
         v-for="school in schools"
         :key="school.id"
-        class="ghost"
+        class="option"
         @click="choose(school.id)"
       >
         {{ school.name }}

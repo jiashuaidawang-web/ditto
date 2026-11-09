@@ -23,12 +23,6 @@ export class QuestionnaireService {
       throw new BadRequestException('兴趣选 1 到 5 个')
     }
     const branchHobby = firstBranchedHobby(interests)
-    if (branchHobby) {
-      const styles = new Set(QUESTIONNAIRE.branches[branchHobby].styles.map((item) => item.id))
-      if (dto.branchHobby !== branchHobby || !dto.branchStyle || !styles.has(dto.branchStyle)) {
-        throw new BadRequestException('把兴趣那一题的分支选完')
-      }
-    }
     const slots = dto.slots.map((id) => SLOT_PRESETS[id]).filter(Boolean)
     if (slots.length !== dto.slots.length || slots.length < 1) {
       throw new BadRequestException('至少选一段本周可约时间')
@@ -38,9 +32,7 @@ export class QuestionnaireService {
       intent: dto.intent,
       lookingFor: [dto.lookingFor],
       interests,
-      interestBranch: branchHobby
-        ? { hobby: branchHobby, style: dto.branchStyle, detail: dto.branchDetail?.trim() || '' }
-        : null,
+      interestBranch: branchHobby ? { hobby: branchHobby, pending: true } : null,
       questionnaireComplete: true,
     }
 

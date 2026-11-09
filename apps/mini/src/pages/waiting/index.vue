@@ -1,6 +1,7 @@
 <template>
   <view class="page">
-    <view class="h1">本周已锁定</view>
+    <BrandLockup variant="compact" />
+    <view class="h1">本周已锁定，等待见面方案</view>
     <view class="lead">等待见面方案。周二 23:59 截止，周三 19:00 发出。演示可以现在就出配。</view>
     <view class="card">
       <view v-if="cycle">{{ cycle.weekKey }} · {{ cycle.phase }}</view>
@@ -26,6 +27,7 @@
 import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import AppNav from '../../components/AppNav.vue'
+import BrandLockup from '../../components/BrandLockup.vue'
 import { request } from '../../api/http'
 import { getDevToken, setDevToken } from '../../config'
 

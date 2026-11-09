@@ -3,11 +3,11 @@ export interface Choice {
   label: string
 }
 
-export interface Branch {
+/** Interest follow-ups stay empty until screenshot copy arrives. No invented options. */
+export interface BranchPlaceholder {
   hobby: string
-  title: string
-  styles: Choice[]
-  detailLabel: string
+  pending: true
+  note: '分支内容待补'
 }
 
 /**
@@ -65,7 +65,7 @@ export const QUESTIONNAIRE = {
       id: 'interests',
       kind: 'multi',
       title: '平时喜欢什么？',
-      caption: '最多 5 个。选了做饭、音乐或运动后，会再问一句。',
+      caption: '最多 5 个。',
       max: 5,
       options: [
         { id: 'cooking', label: '做饭' },
@@ -92,39 +92,10 @@ export const QUESTIONNAIRE = {
     },
   ],
   branches: {
-    cooking: {
-      hobby: 'cooking',
-      title: '做饭的话，更接近哪种？',
-      styles: [
-        { id: 'home', label: '家常' },
-        { id: 'italian', label: '意大利' },
-        { id: 'baking', label: '烘焙' },
-        { id: 'casual', label: '随便做' },
-      ],
-      detailLabel: '拿手菜，可以跳过',
-    },
-    music: {
-      hobby: 'music',
-      title: '音乐的话，更常听哪种？',
-      styles: [
-        { id: 'pop', label: '流行' },
-        { id: 'indie', label: '独立' },
-        { id: 'rap', label: '说唱' },
-        { id: 'classical', label: '古典' },
-      ],
-      detailLabel: '最近在听，可以跳过',
-    },
-    gym: {
-      hobby: 'gym',
-      title: '运动的话，更常做哪种？',
-      styles: [
-        { id: 'lifting', label: '力量' },
-        { id: 'running', label: '跑步' },
-        { id: 'ball', label: '球类' },
-      ],
-      detailLabel: '为了什么，可以跳过',
-    },
-  } satisfies Record<string, Branch>,
+    cooking: { hobby: 'cooking', pending: true, note: '分支内容待补' },
+    music: { hobby: 'music', pending: true, note: '分支内容待补' },
+    gym: { hobby: 'gym', pending: true, note: '分支内容待补' },
+  } satisfies Record<string, BranchPlaceholder>,
 }
 
 export const SLOT_PRESETS: Record<string, { weekday: number; startMin: number; endMin: number; note: string }> = {

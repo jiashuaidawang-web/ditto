@@ -1,6 +1,6 @@
 <template>
   <view class="page">
-    <view class="h1">不如见一面</view>
+    <BrandLockup />
     <view class="lead">房山大学城，每周一次同校见面。手机号或邮箱验证码登录。</view>
 
     <view class="card">
@@ -36,6 +36,7 @@
 import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import AppNav from '../../components/AppNav.vue'
+import BrandLockup from '../../components/BrandLockup.vue'
 import { request } from '../../api/http'
 import { getApiBase, setApiBase, setToken, setUserId } from '../../config'
 

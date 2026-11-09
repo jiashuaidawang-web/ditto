@@ -30,7 +30,7 @@
     },
     {
       "path": "pages/match/index",
-      "style": { "navigationBarTitleText": "周三 Drop" }
+      "style": { "navigationBarTitleText": "本周见面方案" }
     },
     {
       "path": "pages/confirm/index",
