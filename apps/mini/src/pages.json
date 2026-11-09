@@ -5,6 +5,22 @@
       "style": { "navigationBarTitleText": "登录" }
     },
     {
+      "path": "pages/school/index",
+      "style": { "navigationBarTitleText": "选择学校" }
+    },
+    {
+      "path": "pages/questionnaire/index",
+      "style": { "navigationBarTitleText": "建档" }
+    },
+    {
+      "path": "pages/waiting/index",
+      "style": { "navigationBarTitleText": "等待见面" }
+    },
+    {
+      "path": "pages/report/index",
+      "style": { "navigationBarTitleText": "见面方案" }
+    },
+    {
       "path": "pages/verify/index",
       "style": { "navigationBarTitleText": "学生认证" }
     },
@@ -23,7 +39,7 @@
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "Ditto",
+    "navigationBarTitleText": "不如见一面",
     "navigationBarBackgroundColor": "#F4EFE8",
     "backgroundColor": "#F4EFE8"
   }

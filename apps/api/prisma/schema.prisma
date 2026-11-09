@@ -42,8 +42,14 @@ enum MatchStatus {
 
 model User {
   id              String   @id @default(cuid())
-  openid          String   @unique
+  /// WeChat mini program openid. Empty for H5 OTP accounts.
+  openid          String?  @unique
   unionid         String?
+  /// Mainland mobile, 11 digits, no +86. Friday login.
+  phone           String?  @unique
+  email           String?  @unique
+  phoneVerified   Boolean  @default(false)
+  emailVerified   Boolean  @default(false)
   /// WeChat session_key. Stub value only until code2session is live. Never log or return this.
   sessionKey      String?
   nickname        String?
@@ -58,6 +64,7 @@ model User {
   matchesAsA    MatchPair[]            @relation("MatchUserA")
   matchesAsB    MatchPair[]            @relation("MatchUserB")
   feedbacks     Feedback[]
+  reportLinks   ReportLink[]
 }
 
 model Profile {
@@ -143,6 +150,7 @@ model MatchPair {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   feedbacks     Feedback[]
+  reportLinks   ReportLink[]
 
   @@unique([dropCycleId, userAId, userBId])
   @@index([userAId])
@@ -158,6 +166,34 @@ model Feedback {
   rating      Int?
   noShow      Boolean   @default(false)
   comment     String?
+  createdAt   DateTime  @default(now())
+
+  @@unique([matchPairId, userId])
+}
+
+/// One-time code for SMS or email login. Only the hash is stored.
+model OtpChallenge {
+  id         String    @id @default(cuid())
+  /// sms | email
+  channel    String
+  /// Normalized phone or lowercased email.
+  target     String
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  @@index([channel, target])
+}
+
+/// Capability URL for the H5 report card. Knowing the token is enough to open that person's card.
+model ReportLink {
+  token       String    @id
+  matchPairId String
+  matchPair   MatchPair @relation(fields: [matchPairId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
 
   @@unique([matchPairId, userId])

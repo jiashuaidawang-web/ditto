@@ -4,7 +4,7 @@ import { AuthUser } from './current-user.decorator'
 
 interface TokenPayload {
   sub: string
-  openid: string
+  openid?: string
 }
 
 @Injectable()

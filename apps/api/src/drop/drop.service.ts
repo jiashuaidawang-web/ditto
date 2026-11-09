@@ -3,6 +3,8 @@ import { dropInstants, previousWeekKey, shanghaiWeekKey, SHANGHAI_TZ } from '../
 import { MatchingService } from '../matching/matching.service'
 import { NotifyService } from '../notify/notify.service'
 import { PrismaService } from '../prisma/prisma.service'
+import { interestList, oneLineReason, suggestionLabel } from '../reports/card-copy'
+import { ReportsService } from '../reports/reports.service'
 import { suggestMeetup } from './date-suggestion'
 import type { Prisma } from '../generated/prisma/client'
 
@@ -16,6 +18,7 @@ export class DropService {
     private readonly prisma: PrismaService,
     private readonly matching: MatchingService,
     private readonly notify: NotifyService,
+    private readonly reports: ReportsService,
   ) {}
 
   async currentPublic() {
@@ -83,8 +86,11 @@ export class DropService {
     })
 
     await this.prisma.matchPair.deleteMany({ where: { dropCycleId: cycle.id } })
+    const profileByUser = new Map(users.map((user) => [user.id, user.profile]))
     for (const pair of result.pairs) {
       const suggestion = suggestMeetup(weekKey, slotsByUser.get(pair.userAId) ?? [], slotsByUser.get(pair.userBId) ?? [])
+      const interestsA = interestList(profileByUser.get(pair.userAId)?.preferences)
+      const interestsB = interestList(profileByUser.get(pair.userBId)?.preferences)
       await this.prisma.matchPair.create({
         data: {
           dropCycleId: cycle.id,
@@ -92,11 +98,11 @@ export class DropService {
           userBId: pair.userBId,
           schoolId: pair.schoolId,
           gradeGap: pair.gradeGap,
-          reason: pair.reason,
+          reason: oneLineReason(pair.gradeGap, interestsA, interestsB),
           status: 'proposed',
           suggestedAt: suggestion.at,
           meetupAt: suggestion.at,
-          suggestionNote: suggestion.note,
+          suggestionNote: suggestionLabel(suggestion.at),
         },
       })
     }
@@ -115,56 +121,57 @@ export class DropService {
 
   async runRelease(source: DropSource) {
     const weekKey = shanghaiWeekKey()
-    let cycle = await this.prisma.dropCycle.findUnique({ where: { weekKey } })
+    let cycle = await this.prisma.dropCycle.findUnique({
+      where: { weekKey },
+      include: { _count: { select: { pairs: true } } },
+    })
     const notes: string[] = []
-    if (!cycle || cycle.phase === 'open') {
-      notes.push('cutoff had not run; running cutoff before release')
-      await this.runCutoff(source)
-      cycle = await this.prisma.dropCycle.findUniqueOrThrow({ where: { weekKey } })
+    if (!cycle || cycle.phase === 'open' || cycle._count.pairs === 0) {
+      notes.push(cycle?._count.pairs === 0 ? 'cycle has no pairs; running cutoff before release' : 'cutoff had not run; running cutoff before release')
+      await this.runCutoff(source, true)
+      cycle = await this.prisma.dropCycle.findUniqueOrThrow({
+        where: { weekKey },
+        include: { _count: { select: { pairs: true } } },
+      })
     }
 
     const pairs = await this.prisma.matchPair.findMany({
       where: { dropCycleId: cycle.id, status: { notIn: ['declined', 'cancelled'] } },
       include: {
-        userA: { select: { openid: true } },
-        userB: { select: { openid: true } },
+        userA: { select: { id: true, phone: true, email: true, profile: { select: { displayName: true } } } },
+        userB: { select: { id: true, phone: true, email: true, profile: { select: { displayName: true } } } },
       },
     })
 
     const intended = [
       `Wednesday 19:00 ${SHANGHAI_TZ} Drop for ${weekKey}`,
-      `send match poster + date suggestion to ${pairs.length * 2} openids`,
-      'users confirm, reschedule, check in, then leave short feedback',
+      'send match summary + H5 deep link by Aliyun SMS when SMS_PROVIDER=aliyun and keys exist',
+      'otherwise log a stub and keep accepted=false',
+      'WeChat subscribe message stays TODO and is not sent',
     ]
     this.logger.log(JSON.stringify({ source, phase: 'release', weekKey, intended, notes }))
 
     const notifications = []
     for (const pair of pairs) {
-      const when = (pair.meetupAt ?? pair.suggestedAt)?.toISOString() ?? ''
-      for (const openid of [pair.userA.openid, pair.userB.openid]) {
-        const poster = await this.notify.sendSubscribeMessage({
-          openid,
-          templateId: '',
-          scene: 'match_poster',
-          page: 'pages/match/index',
-          data: {
-            thing1: { value: '周三 Drop' },
-            time2: { value: when.slice(0, 16) || '本周' },
-            thing3: { value: '打开小程序查看匹配海报' },
-          },
-        })
-        const suggestion = await this.notify.sendSubscribeMessage({
-          openid,
-          templateId: '',
-          scene: 'date_suggestion',
-          page: 'pages/confirm/index',
-          data: {
-            thing1: { value: '见面时间建议' },
-            time2: { value: when.slice(0, 16) || '待确认' },
-            thing3: { value: '确认或改期' },
-          },
-        })
-        notifications.push(poster, suggestion)
+      const summary = `${pair.reason}。${pair.suggestionNote || '校内咖啡走走'}`
+      const people = [
+        { self: pair.userA, peerName: pair.userB.profile?.displayName || 'TA' },
+        { self: pair.userB, peerName: pair.userA.profile?.displayName || 'TA' },
+      ]
+      for (const person of people) {
+        const token = await this.reports.ensureToken(pair.id, person.self.id)
+        const url = `${this.reports.baseUrl().replace(/\/$/, '')}/m/${token}`
+        const content = `和${person.peerName}见面。${summary}`
+        if (person.self.phone) {
+          const sms = await this.notify.sendMatchSms(person.self.phone, content, url)
+          notifications.push({ userId: person.self.id, channel: 'sms', url, ...sms })
+        } else if (person.self.email) {
+          const email = this.notify.sendMatchEmailStub(person.self.email, content, url)
+          notifications.push({ userId: person.self.id, channel: 'email', url, ...email })
+        } else {
+          this.logger.log(JSON.stringify({ accepted: false, stub: true, channel: 'none', userId: person.self.id, url, content }))
+          notifications.push({ userId: person.self.id, channel: 'none', url, accepted: false, stub: true, provider: 'stub' })
+        }
       }
     }
 
@@ -175,7 +182,8 @@ export class DropService {
       intended,
       notes,
       notifyCount: notifications.length,
-      stubbed: true,
+      acceptedCount: notifications.filter((item) => item.accepted).length,
+      stubbed: notifications.every((item) => item.stub),
     }
     await this.prisma.dropCycle.update({
       where: { id: cycle.id },

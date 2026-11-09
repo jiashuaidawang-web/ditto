@@ -39,7 +39,7 @@ import AppNav from '../../components/AppNav.vue'
 import { request } from '../../api/http'
 
 const displayName = ref('')
-const schoolId = ref('fudan')
+const schoolId = ref('cnu_liangxiang')
 const schoolName = ref('')
 const grade = ref('2')
 const major = ref('')

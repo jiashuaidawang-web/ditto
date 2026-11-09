@@ -58,11 +58,43 @@ export class AuthService {
       select: {
         id: true,
         openid: true,
+        phone: true,
+        email: true,
+        phoneVerified: true,
+        emailVerified: true,
         studentVerified: true,
-        nickname: true,
         createdAt: true,
+        profile: {
+          select: {
+            displayName: true,
+            schoolId: true,
+            schoolName: true,
+            grade: true,
+            preferences: true,
+          },
+        },
       },
     })
-    return user
+    const preferences = user.profile?.preferences
+    const questionnaireComplete =
+      !!preferences &&
+      typeof preferences === 'object' &&
+      !Array.isArray(preferences) &&
+      (preferences as { questionnaireComplete?: boolean }).questionnaireComplete === true
+    return {
+      id: user.id,
+      openid: user.openid,
+      phone: user.phone,
+      email: user.email,
+      phoneVerified: user.phoneVerified,
+      emailVerified: user.emailVerified,
+      studentVerified: user.studentVerified,
+      createdAt: user.createdAt,
+      displayName: user.profile?.displayName ?? null,
+      schoolId: user.profile?.schoolId ?? null,
+      schoolName: user.profile?.schoolName ?? null,
+      grade: user.profile?.grade ?? null,
+      questionnaireComplete,
+    }
   }
 }

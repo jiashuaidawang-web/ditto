@@ -1,98 +1,116 @@
 import 'dotenv/config'
 import { PrismaPg } from '@prisma/adapter-pg'
-import { dropInstants, previousWeekKey, shanghaiWeekKey } from '../src/common/shanghai-time'
+import { Prisma } from '../src/generated/prisma/client'
 import { PrismaClient } from '../src/generated/prisma/client'
+import { findSchool } from '../src/schools/catalog'
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 })
 
 interface SeedUser {
-  openid: string
+  phone: string
+  email: string
   displayName: string
   schoolId: string
-  schoolName: string
   grade: number
-  major: string
+  gender: string
 }
 
 const USERS: SeedUser[] = [
-  { openid: 'seed_a', displayName: '安安', schoolId: 'fudan', schoolName: '复旦大学', grade: 2, major: '新闻' },
-  { openid: 'seed_b', displayName: '柏柏', schoolId: 'fudan', schoolName: '复旦大学', grade: 3, major: '计算机' },
-  { openid: 'seed_c', displayName: '陈陈', schoolId: 'fudan', schoolName: '复旦大学', grade: 2, major: '社会学' },
-  { openid: 'seed_d', displayName: '丁丁', schoolId: 'nju', schoolName: '南京大学', grade: 2, major: '物理' },
+  {
+    phone: '13800001001',
+    email: 'linxia@demo.aiditto.cn',
+    displayName: '林夏',
+    schoolId: 'cnu_liangxiang',
+    grade: 2,
+    gender: 'female',
+  },
+  {
+    phone: '13800001002',
+    email: 'zhouyu@demo.aiditto.cn',
+    displayName: '周予',
+    schoolId: 'cnu_liangxiang',
+    grade: 3,
+    gender: 'male',
+  },
 ]
 
+const LEGACY_OPENIDS = ['seed_a', 'seed_b', 'seed_c', 'seed_d']
+
+async function removeLegacy() {
+  const legacy = await prisma.user.findMany({
+    where: { openid: { in: LEGACY_OPENIDS } },
+    select: { id: true },
+  })
+  const ids = legacy.map((user) => user.id)
+  if (!ids.length) return
+  await prisma.feedback.deleteMany({ where: { userId: { in: ids } } })
+  await prisma.matchPair.deleteMany({
+    where: { OR: [{ userAId: { in: ids } }, { userBId: { in: ids } }] },
+  })
+  await prisma.user.deleteMany({ where: { id: { in: ids } } })
+}
+
 async function upsertUser(seed: SeedUser) {
+  const school = findSchool(seed.schoolId)
+  if (!school) throw new Error(`unknown school ${seed.schoolId}`)
+  const preferences = {
+    intent: 'serious',
+    lookingFor: ['any'],
+    interests: ['cooking'],
+    interestBranch: { hobby: 'cooking', style: 'home', detail: '' },
+    questionnaireComplete: true,
+  } satisfies Prisma.InputJsonValue
   const user = await prisma.user.upsert({
-    where: { openid: seed.openid },
-    create: { openid: seed.openid, studentVerified: true, sessionKey: 'stub-session-key' },
-    update: { studentVerified: true },
+    where: { phone: seed.phone },
+    create: {
+      phone: seed.phone,
+      email: seed.email,
+      phoneVerified: true,
+      emailVerified: true,
+      studentVerified: true,
+    },
+    update: {
+      email: seed.email,
+      phoneVerified: true,
+      emailVerified: true,
+      studentVerified: true,
+    },
   })
   await prisma.profile.upsert({
     where: { userId: user.id },
     create: {
       userId: user.id,
       displayName: seed.displayName,
-      schoolId: seed.schoolId,
-      schoolName: seed.schoolName,
+      gender: seed.gender,
+      schoolId: school.id,
+      schoolName: school.name,
       grade: seed.grade,
-      major: seed.major,
-      preferences: { intent: 'friends', interests: ['散步'], pace: 'slow' },
+      preferences,
     },
     update: {
       displayName: seed.displayName,
-      schoolId: seed.schoolId,
-      schoolName: seed.schoolName,
+      gender: seed.gender,
+      schoolId: school.id,
+      schoolName: school.name,
       grade: seed.grade,
-      major: seed.major,
+      preferences,
     },
   })
   await prisma.availabilitySlot.deleteMany({ where: { userId: user.id } })
-  await prisma.availabilitySlot.createMany({
-    data: [
-      { userId: user.id, weekday: 3, startMin: 19 * 60, endMin: 21 * 60, note: '周三晚' },
-      { userId: user.id, weekday: 6, startMin: 14 * 60, endMin: 17 * 60, note: '周六下午' },
-    ],
+  await prisma.availabilitySlot.create({
+    data: { userId: user.id, weekday: 6, startMin: 14 * 60, endMin: 17 * 60, note: '周六下午' },
   })
   return user
 }
 
 async function main() {
-  const users = new Map<string, { id: string }>()
+  await removeLegacy()
   for (const seed of USERS) {
-    users.set(seed.openid, await upsertUser(seed))
+    await upsertUser(seed)
   }
-
-  const prevKey = previousWeekKey(shanghaiWeekKey())
-  const instants = dropInstants(prevKey)
-  const cycle = await prisma.dropCycle.upsert({
-    where: { weekKey: prevKey },
-    create: {
-      weekKey: prevKey,
-      cutoffAt: instants.cutoffAt,
-      releaseAt: instants.releaseAt,
-      phase: 'closed',
-    },
-    update: { phase: 'closed' },
-  })
-  const userAId = users.get('seed_a')!.id
-  const userCId = users.get('seed_c')!.id
-  const [left, right] = userAId < userCId ? [userAId, userCId] : [userCId, userAId]
-  await prisma.matchPair.upsert({
-    where: { dropCycleId_userAId_userBId: { dropCycleId: cycle.id, userAId: left, userBId: right } },
-    create: {
-      dropCycleId: cycle.id,
-      userAId: left,
-      userBId: right,
-      schoolId: 'fudan',
-      gradeGap: 0,
-      reason: 'seed: previous week pair so this week cannot rematch',
-      status: 'feedback_done',
-    },
-    update: {},
-  })
-  console.log(`seeded ${USERS.length} users; previous cycle ${prevKey} blocks seed_a x seed_c`)
+  console.log('seeded Fangshan pair: 13800001001 林夏 (首师大良乡, 大二) and 13800001002 周予 (首师大良乡, 大三)')
 }
 
 main()

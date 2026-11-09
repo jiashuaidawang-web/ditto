@@ -2,6 +2,10 @@ import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { ScheduleModule } from '@nestjs/schedule'
 import { AuthModule } from './auth/auth.module'
+import { OtpModule } from './otp/otp.module'
+import { QuestionnaireModule } from './questionnaire/questionnaire.module'
+import { ReportsModule } from './reports/reports.module'
+import { SchoolsModule } from './schools/schools.module'
 import { AvailabilityModule } from './availability/availability.module'
 import { DropModule } from './drop/drop.module'
 import { HealthModule } from './health/health.module'
@@ -19,6 +23,9 @@ import { StudentVerifyModule } from './student-verify/student-verify.module'
     PrismaModule,
     HealthModule,
     AuthModule,
+    OtpModule,
+    SchoolsModule,
+    QuestionnaireModule,
     StudentVerifyModule,
     ProfilesModule,
     AvailabilityModule,
@@ -26,6 +33,7 @@ import { StudentVerifyModule } from './student-verify/student-verify.module'
     MatchingModule,
     DropModule,
     MatchesModule,
+    ReportsModule,
   ],
 })
 export class AppModule {}

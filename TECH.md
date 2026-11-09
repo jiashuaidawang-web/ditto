@@ -1,6 +1,30 @@
-# Ditto 技术说明
+# 不如见一面 · 技术说明
 
-骨架阶段的选型、模块和契约。产品范围以本次冻结为准，不在这里展开 PRD。
+周五（2026-11-14）验收以 H5 + 阿里云短信为准。微信小程序、订阅消息、学信网留在仓库里，不阻塞演示。
+
+## 周五短信
+
+手机号 OTP 和 Drop 匹配通知共用 `AliyunSmsProvider`（Dysmsapi `SendSms`，RPC HMAC-SHA1，`https://dysmsapi.aliyuncs.com/`）。
+
+| 变量 | 作用 |
+| --- | --- |
+| `SMS_PROVIDER` | `aliyun` 或 `stub`。不是 `aliyun`，或者密钥不全，就走 stub |
+| `ALIYUN_ACCESS_KEY_ID` | 阿里云 AccessKey |
+| `ALIYUN_ACCESS_KEY_SECRET` | 对应 Secret。只放环境，不进 git |
+| `ALIYUN_SMS_SIGN_NAME` | 短信签名 |
+| `ALIYUN_SMS_TEMPLATE_OTP` | 验证码模板。变量名 **`code`** |
+| `ALIYUN_SMS_TEMPLATE_MATCH` | 匹配通知模板。变量名 **`content`**（摘要）、**`url`**（绝对 H5 链接，形如 `https://aiditto.cn/m/<token>`） |
+| `H5_PUBLIC_BASE_URL` | 链接前缀。本地 `http://localhost:5173`，线上 `https://aiditto.cn` |
+| `OTP_DEV_ECHO` | `true` 时响应里带 `devCode`。演示以外关掉 |
+| `STUDENT_VERIFY_SKIP` | `true` 时 OTP 登录把 `studentVerified` 写成 true |
+
+`ALIYUN_SMS_TEMPLATE_MATCH` 为空、但 OTP 模板存在时，会复用 OTP 模板，把「摘要 + 空格 + url」塞进 **`code`**。风险：验证码模板通常只允许 4–6 位数字，阿里云会直接拒绝，`accepted` 仍是 false。周五演示应单独申请匹配模板。
+
+Stub 会把模板参数和深链打进日志，返回 `accepted: false`。不会把 stub 说成已送达。邮箱 OTP 和没有手机号时的匹配通知走 `EmailStubProvider`，同样 `accepted: false`。
+
+报告页 `GET /reports/:token` 不需要登录。H5 认 `/m/:token`。开发服务器会把这个路径送到 `index.html`；静态托管需要 `try_files` 回落到 `index.html`。
+
+## 技术选型
 
 ## 技术选型
 
@@ -21,20 +45,24 @@
 ```
 apps/api/src
   health            GET /health
-  auth              微信 code → 用户 → JWT
-  student-verify    学信网 / 学生证 OCR / 教育邮箱，三条 stub
-  profiles          基础资料 + 偏好
-  availability      每周空闲，整表覆盖
-  matching          Matcher 接口 + 同校贪心
-  drop              周二截止、周三 19:00、日期建议
-  notify            订阅消息 stub
-  matches           确认、改期、签到、反馈、风险提示
-  prisma            全局 PrismaService
-  common            上海时间、JWT、开发令牌
+  otp               手机号 / 邮箱验证码。手机号复用 AliyunSmsProvider
+  schools           房山大学城名单
+  questionnaire     基本信息 → 偏好/一条兴趣分支 → 本周可约
+  auth              微信 code2session（周五不走）
+  student-verify    学信网 / 学生证 / .edu，周五用 STUDENT_VERIFY_SKIP
+  channels          AliyunSmsProvider + EmailStubProvider
+  matching          同校、年级差 ≤ 2、上周不重配
+  drop              周二截止、周三 19:00、一键 release
+  notify            匹配短信；微信订阅消息仍是 TODO
+  reports           /m/:token 报告卡
+  matches           确认、改期、签到、反馈
 
 apps/mini/src/pages
-  login verify profile match confirm
+  login school questionnaire waiting report
+  verify profile match confirm   # 小程序旧路径
 ```
+
+学校 id：`cnu_liangxiang`（首都师范·良乡）、`bucm`（北京中医药大学），另有北工商、北理工良乡、社科大。兴趣选项沿用旧问卷的 Cooking / Music / Travel / Reading / Gym / Gaming / Movies / Art，中文写成做饭、音乐、旅行、读书、运动、游戏、影视、艺术。做饭、音乐、运动各有一条分支。族裔、政治、人脸、iMessage 没有迁进来。
 
 匹配算法和 Drop 分开：`Matcher.propose()` 是纯函数，Drop 负责读写周期和调用通知。以后换成图匹配只换 `Matcher` 的实现。
 
