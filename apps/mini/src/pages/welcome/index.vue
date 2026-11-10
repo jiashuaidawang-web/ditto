@@ -76,8 +76,24 @@
     </view>
 
     <view class="screen">
+      <text class="h2">扫过整个池子</text>
+      <text class="card">告诉偏好，学习你的节奏</text>
+      <text class="card">全池扫描，只推一个</text>
+      <text class="card">周三一条短信，准备好去见</text>
+    </view>
+
+    <view class="screen">
       <text class="h2">难忘的好时光</text>
-      <text class="sub">校园里真实见过的人，比滑动更记得住。</text>
+      <view class="polaroid">
+        <view class="pic"></view>
+        <text class="strong">林夏 · 良乡</text>
+        <text class="sub">「周三就约上了」</text>
+      </view>
+      <view class="polaroid">
+        <view class="pic alt"></view>
+        <text class="strong">周予 · 良乡</text>
+        <text class="sub">「比滑动真实太多」</text>
+      </view>
     </view>
 
     <view class="screen">
@@ -97,20 +113,30 @@
 
     <view class="screen">
       <text class="h2">常见问题</text>
-      <text class="card">怎么配对？每周只推一个最合适的。</text>
-      <text class="card">不喜欢怎么办？可以跳过本周。</text>
-      <text class="card">约在哪？优先校园咖啡。</text>
+      <text class="card">怎么配对？根据偏好与节奏，每周只推一个。</text>
+      <text class="card">见面前后我能知道什么？报告卡写共同点。</text>
+      <text class="card">不喜欢匹配怎么办？可以跳过本周。</text>
+      <text class="card">谁在参与？本校已验证学生。</text>
+    </view>
+
+    <view class="screen">
+      <text class="h2">常见问题（续）</text>
+      <text class="card">临时去不了？尽早告知对方。</text>
+      <text class="card">通常多久约上？多数人一两天内定时间。</text>
+      <text class="card">收不到回复？检查短信过滤，也可站内重发。</text>
+      <text class="card">约会出现在哪？优先校园咖啡和公共场合。</text>
     </view>
 
     <view class="screen">
       <text class="h2">不见面滑动，直接见面</text>
       <text class="sub">一个朋友，每周给你发一条准备好的见面邀请。</text>
-      <button class="cta-final" @click="join">我们的宣言 · 立即加入</button>
+      <button class="cta-final" @click="join">进入问卷 · 开始匹配</button>
     </view>
 
     <view class="screen">
       <text class="h2">不如见一面</text>
       <text class="sub">一个朋友，每周给你发一条准备好的见面。</text>
+      <text class="fine">职业机会 · 我们的宣言 · 条款 · 隐私</text>
       <text class="fine">© 不如见一面 2026</text>
     </view>
   </scroll-view>
@@ -135,10 +161,16 @@ const ctaOn = ref(false)
 const bgLoop = ref(false)
 const typingOn = ref(false)
 const replyOn = ref(false)
-const cardName = ref('本周约会 · 林夏')
-const cardBio = ref('喜欢做饭 · 校园咖啡')
+const cards = [
+  { name: '本周约会 · 林夏', bio: '喜欢做饭 · 校园咖啡' },
+  { name: '本周约会 · 周予', bio: '同校 · 周六下午校内咖啡' },
+]
+const cardName = ref(cards[0].name)
+const cardBio = ref(cards[0].bio)
 const anchor = ref('')
 let timers: ReturnType<typeof setTimeout>[] = []
+let loop: ReturnType<typeof setInterval> | null = null
+let cardIx = 0
 
 const steps = [
   { n: '1', title: '告诉「不如见一面」你的类型', body: '周二 23:59 前交完偏好' },
@@ -154,6 +186,11 @@ function later(ms: number, fn: () => void) {
 function reset() {
   timers.forEach(clearTimeout)
   timers = []
+  if (loop) clearInterval(loop)
+  loop = null
+  cardIx = 0
+  cardName.value = cards[0].name
+  cardBio.value = cards[0].bio
   bgOn.value = sunOn.value = navOn.value = campusOn.value = riverOn.value = false
   lettersOn.value = phoneOn.value = tsOn.value = b1On.value = cardOn.value = false
   ctaOn.value = bgLoop.value = typingOn.value = replyOn.value = false
@@ -165,7 +202,7 @@ function play() {
   bgOn.value = true
   sunOn.value = true
   navOn.value = true
-  later(350, () => {
+  later(420, () => {
     campusOn.value = true
     riverOn.value = true
   })
@@ -198,8 +235,17 @@ function play() {
   })
   later(4200, () => {
     replyOn.value = true
-    cardName.value = '本周约会 · 周予'
-    cardBio.value = '同校 · 周六下午校内咖啡'
+    loop = setInterval(() => {
+      typingOn.value = true
+      replyOn.value = false
+      later(900, () => {
+        cardIx = (cardIx + 1) % cards.length
+        cardName.value = cards[cardIx].name
+        cardBio.value = cards[cardIx].bio
+        typingOn.value = false
+        replyOn.value = true
+      })
+    }, 4200)
   })
 }
 
@@ -208,7 +254,10 @@ function join() {
 }
 
 onMounted(play)
-onBeforeUnmount(() => timers.forEach(clearTimeout))
+onBeforeUnmount(() => {
+  timers.forEach(clearTimeout)
+  if (loop) clearInterval(loop)
+})
 </script>
 
 <style scoped>
@@ -393,7 +442,7 @@ onBeforeUnmount(() => timers.forEach(clearTimeout))
 .dove.spawn { opacity: 0.85; }
 .dove.fly { animation: doveFly 0.5s cubic-bezier(0.22, 0.8, 0.28, 1) forwards; }
 .dove.bob {
-  top: 30%;
+  top: 36%;
   left: 50%;
   opacity: 1;
   animation: doveBob 2.2s ease-in-out infinite;
@@ -442,12 +491,16 @@ onBeforeUnmount(() => timers.forEach(clearTimeout))
 @keyframes phoneIn { to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 @keyframes bubblePop { to { opacity: 1; transform: none; } }
 @keyframes chIn { to { opacity: 1; transform: none; } }
+.polaroid { margin-top: 12px; padding: 10px; border-radius: 8px; background: #fff; color: #1a2744; }
+.pic { height: 120px; border-radius: 4px; background: linear-gradient(135deg, #7eb6e8, #2f62bb 60%, #003d72); }
+.pic.alt { background: linear-gradient(135deg, #5a9fd4, #003d72); }
 @keyframes doveFly {
-  from { opacity: 0.9; transform: translate(-140%, -55%) rotate(-16deg); }
-  to { opacity: 1; transform: translate(-50%, -80%) rotate(0deg); left: 50%; }
+  0% { opacity: 0.9; transform: translate(-140%, -55%) rotate(-16deg) scale(0.9); }
+  55% { opacity: 1; transform: translate(-70%, -62%) rotate(4deg) scale(1.04); }
+  100% { opacity: 1; transform: translate(-50%, -50%) rotate(0deg) scale(1); }
 }
 @keyframes doveBob {
-  from, to { transform: translate(-50%, -80%) translateY(0); }
-  50% { transform: translate(-50%, -80%) translateY(-10px); }
+  0%, 100% { transform: translate(-50%, -50%) translateY(0) rotate(-2deg); }
+  50% { transform: translate(-50%, -50%) translateY(-10px) rotate(2deg); }
 }
 </style>
