@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="phone">
     <BrandLockup />
     <view class="lead">房山大学城，每周一次同校见面。手机号或邮箱验证码登录。</view>
 

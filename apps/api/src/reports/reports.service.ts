@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config'
 import { shanghaiWeekKey, weekdayInWeek } from '../common/shanghai-time'
 import { MatchesService } from '../matches/matches.service'
 import { PrismaService } from '../prisma/prisma.service'
+import { findSchool } from '../schools/catalog'
 import { gradeLabel, interestList, publicReportUrl } from './card-copy'
 import { ReportRespondDto } from './dto/report-respond.dto'
 
@@ -132,7 +133,7 @@ export class ReportsService {
       kicker: '本周见面方案',
       youName: you.profile?.displayName || '你',
       peerName: peer.profile?.displayName || 'TA',
-      schoolName: peer.profile?.schoolName || '同校',
+      schoolName: cardSchoolName(peer.profile?.schoolId, peer.profile?.schoolName),
       gradeLabel: gradeLabel(peer.profile?.grade),
       reason: pair.reason,
       suggestion: pair.suggestionNote || '校内咖啡走走',
@@ -150,10 +151,19 @@ interface Person {
   id: string
   profile: {
     displayName: string | null
+    schoolId: string | null
     schoolName: string | null
     grade: number | null
     preferences: unknown
   } | null
+}
+
+function cardSchoolName(schoolId?: string | null, fallback?: string | null): string {
+  if (schoolId) {
+    const school = findSchool(schoolId)
+    if (school) return school.cardName
+  }
+  return fallback || '同校'
 }
 
 function shared(you: Person, peer: Person): string[] {

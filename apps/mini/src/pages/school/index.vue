@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="phone">
     <view class="h1">选一所学校</view>
     <view class="lead">只在房山大学城里面配。跨校这周不做。</view>
     <view class="card">

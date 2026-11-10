@@ -1,6 +1,11 @@
 <template>
-  <view class="page">
-    <BrandLockup variant="compact" />
+  <view class="phone">
+    <view class="q-top">
+      <view class="q-top-spacer"></view>
+      <view class="brand-pill"><BrandLockup variant="compact" /></view>
+      <view class="q-top-spacer"></view>
+    </view>
+    <view class="wait-illu">✉️</view>
     <view class="h1">本周已锁定，等待见面方案</view>
     <view class="lead">等待见面方案。周二 23:59 截止，周三 19:00 发出。演示可以现在就出配。</view>
     <view class="card">
@@ -78,3 +83,20 @@ function openReport() {
   uni.redirectTo({ url: '/pages/report/index' })
 }
 </script>
+
+<style scoped>
+.wait-illu {
+  display: grid;
+  width: 140px;
+  height: 140px;
+  margin: 48px auto 8px;
+  place-items: center;
+  border-radius: 32px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.28), rgba(126, 182, 255, 0.2));
+  font-size: 64px;
+}
+.h1, .lead, .card {
+  margin-left: 16px;
+  margin-right: 16px;
+}
+</style>

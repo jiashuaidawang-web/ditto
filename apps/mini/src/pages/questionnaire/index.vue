@@ -1,80 +1,122 @@
 <template>
-  <view class="page quiz">
-    <BrandLockup variant="compact" />
-    <view class="caption">第 {{ index + 1 }} 步</view>
-    <view class="progress"><view class="progress-fill" :style="{ width: progress }"></view></view>
-    <view class="h2">{{ current.title }}</view>
-    <view class="lead" v-if="'caption' in current && current.caption">{{ current.caption }}</view>
-
-    <view v-if="loading" class="skeleton"></view>
-
-    <view v-else-if="current.kind === 'text'">
-      <input class="field" v-model="displayName" :placeholder="textPlaceholder" />
+  <view class="phone">
+    <view class="q-top">
+      <button class="q-back" @click="goBack">←</button>
+      <view class="brand-pill"><BrandLockup variant="compact" /></view>
+      <button class="q-lock" @click="showLock">锁</button>
+    </view>
+    <view class="progress-segs">
+      <view class="progress-seg" :class="segClass(1)"></view>
+      <view class="progress-seg" :class="segClass(2)"></view>
+      <view class="progress-seg" :class="segClass(3)"></view>
     </view>
 
-    <view v-else-if="current.kind === 'single' || current.kind === 'multi'">
-      <button
-        v-for="option in current.options || []"
-        :key="option.id"
-        class="option"
-        :class="{ on: isOn(option.id) }"
-        @click="choose(option.id)"
-      >
-        <text>{{ option.emoji ? option.emoji + ' ' : '' }}{{ option.label }}</text>
-        <text v-if="isOn(option.id)">✓</text>
-      </button>
-    </view>
+    <view class="q-body">
+      <view class="bubble-label">不如见一面</view>
+      <view class="bubble" v-if="current.id === 'interests'">你有哪些<text class="em">爱好和兴趣</text>？</view>
+      <view class="bubble" v-else-if="current.id === 'availability'">这周你<text class="em">什么时候方便见面</text>？</view>
+      <view class="bubble" v-else-if="current.kind === 'specialty'">{{ current.title }}</view>
+      <view class="bubble" v-else>{{ current.title }}</view>
+      <view class="bubble-hint" v-if="'caption' in current && current.caption">{{ current.caption }}</view>
 
-    <view v-else-if="current.kind === 'interests'">
-      <button
-        v-for="option in current.options || []"
-        :key="option.id"
-        class="option"
-        :class="{ on: interestOrder.includes(option.id) }"
-        @click="toggleHobby(option.id)"
-      >
-        <text>{{ option.emoji }} {{ option.label }}</text>
-        <text v-if="interestOrder.includes(option.id)">✓</text>
-      </button>
-      <button
-        v-for="custom in customHobbies"
-        :key="custom"
-        class="option on"
-        @click="removeInterest(custom)"
-      >
-        <text>{{ customLabel(custom) }}</text>
-        <text>✓</text>
-      </button>
-      <text class="label">✎ 写一个爱好</text>
-      <input class="field" v-model="customDraft" placeholder="例如摄影" />
-      <button class="ghost" @click="addCustom">加上这个爱好</button>
-    </view>
+      <view v-if="loading" class="skeleton"></view>
+      <input v-else-if="current.kind === 'text'" class="field" v-model="displayName" :placeholder="textPlaceholder" />
 
-    <view v-else-if="current.kind === 'specialty'">
-      <button
-        v-for="option in current.options"
-        :key="option.id"
-        class="option"
-        :class="{ on: specialtyOn(current.hobby, option.id) }"
-        @click="toggleSpecialty(current.hobby, option.id)"
-      >
-        <text>{{ option.emoji }} {{ specialtyLabel(current.hobby, option) }}</text>
-        <text v-if="specialtyOn(current.hobby, option.id)">✓</text>
-      </button>
-      <view v-if="editingOther">
-        <input class="field" v-model="otherDraft" placeholder="写你的说法" />
-        <button class="ghost" @click="confirmOther(current.hobby)">确认其他</button>
+      <view v-else-if="current.kind === 'single'" class="chip-list">
+        <button
+          v-for="option in current.options || []"
+          :key="option.id"
+          class="chip"
+          :class="{ selected: isOn(option.id) }"
+          @click="choose(option.id)"
+        >
+          <text class="chip-label">{{ option.label }}</text>
+          <text class="check">✓</text>
+        </button>
+      </view>
+
+      <view v-else-if="current.id === 'availability'" class="slot-grid">
+        <button
+          v-for="option in current.options || []"
+          :key="option.id"
+          class="chip"
+          :class="{ selected: isOn(option.id) }"
+          @click="choose(option.id)"
+        >
+          <text class="chip-label">{{ option.label }}</text>
+          <text v-if="option.time" class="slot-time">{{ option.time }}</text>
+          <text class="check">✓</text>
+        </button>
+      </view>
+
+      <view v-else-if="current.kind === 'interests'">
+        <view class="chip-list">
+          <button
+            v-for="option in current.options || []"
+            :key="option.id"
+            class="chip"
+            :class="{ selected: interestOrder.includes(option.id) }"
+            @click="toggleHobby(option.id)"
+          >
+            <text class="emoji">{{ option.emoji }}</text>
+            <text class="chip-label">{{ option.label }}</text>
+            <text class="check">✓</text>
+          </button>
+          <button
+            v-for="custom in customHobbies"
+            :key="custom"
+            class="chip selected"
+            @click="removeInterest(custom)"
+          >
+            <text class="emoji">✨</text>
+            <text class="chip-label">{{ customLabel(custom) }}</text>
+            <text class="check">✓</text>
+          </button>
+        </view>
+        <view class="custom-row">
+          <text>✎</text>
+          <input class="field" v-model="customDraft" maxlength="20" placeholder="写一个爱好" />
+          <button class="add-btn" @click="addCustom">添加</button>
+        </view>
+      </view>
+
+      <view v-else-if="current.kind === 'specialty'">
+        <view class="chip-list">
+          <button
+            v-for="option in current.options"
+            :key="option.id"
+            class="chip"
+            :class="{ selected: specialtyOn(current.hobby, option.id), other: option.id === 'other' }"
+            @click="toggleSpecialty(current.hobby, option.id)"
+          >
+            <text class="emoji">{{ option.emoji }}</text>
+            <text class="chip-label">{{ specialtyLabel(current.hobby, option) }}</text>
+            <text v-if="option.id !== 'other'" class="check">✓</text>
+          </button>
+        </view>
+        <view v-if="editingOther" class="other-panel">
+          <input class="field" v-model="otherDraft" maxlength="24" placeholder="写一下你的说法" />
+          <view class="other-actions">
+            <button class="btn-secondary" @click="editingOther = false">取消</button>
+            <button class="btn-primary" @click="confirmOther(current.hobby)">确认</button>
+          </view>
+        </view>
       </view>
     </view>
 
-    <view class="bottom-cta">
-      <view v-if="error" class="error">{{ error }}</view>
-      <button class="primary" :disabled="!canNext || submitting" @click="next">
-        {{ submitting ? '提交中' : last ? '完成' : '下一步' }}
+    <view class="bottom-cta" :class="{ stack: current.id === 'availability' }">
+      <button
+        v-if="current.id === 'availability'"
+        class="btn-primary"
+        :disabled="!canNext || submitting"
+        @click="next"
+      >
+        {{ submitting ? '提交中…' : '提交档案' }}
       </button>
-      <button v-if="index > 0" class="ghost" @click="back">返回上一题</button>
+      <button v-else class="btn-fab" :disabled="!canNext || submitting" @click="next">→</button>
     </view>
     <view v-if="toast" class="toast">{{ toast }}</view>
+    <view v-if="error" class="error">{{ error }}</view>
   </view>
 </template>
 
@@ -97,7 +139,7 @@ interface Step {
   placeholder?: string
   max?: number
   customLabel?: string
-  options?: Option[]
+  options?: Array<Option & { time?: string }>
 }
 interface Specialty {
   hobby: string
@@ -154,6 +196,22 @@ const progress = computed(() => `${flow.value.length ? ((Math.min(index.value, f
 const customHobbies = computed(() => interestOrder.value.filter((id) => id.startsWith('custom:')))
 const textPlaceholder = computed(() => (current.value.kind === 'text' ? current.value.placeholder || '' : ''))
 
+const phase = computed(() => {
+  const step = current.value
+  if (step.kind === 'specialty' || step.id === 'interests') return 'interest'
+  if (step.id === 'availability') return 'slots'
+  return 'basics'
+})
+
+function segClass(part: number) {
+  if (phase.value === 'slots') return 'fill'
+  if (phase.value === 'interest') {
+    if (current.value.kind === 'specialty') return part <= 2 ? 'fill' : ''
+    return part === 1 ? 'fill' : part === 2 ? 'partial' : ''
+  }
+  return part === 1 ? 'partial' : ''
+}
+
 const canNext = computed(() => {
   const step = current.value
   if (step.kind === 'text') return displayName.value.trim().length > 0
@@ -190,13 +248,12 @@ function choose(id: string) {
     return
   }
   if (step.kind !== 'multi') return
-  const max = step.max || 3
   if (slots.value.includes(id)) {
     slots.value = slots.value.filter((item) => item !== id)
     return
   }
-  if (slots.value.length >= max) {
-    showToast(`最多选 ${max} 段`)
+  if (step.max && slots.value.length >= step.max) {
+    showToast(`最多选 ${step.max} 段`)
     return
   }
   slots.value = [...slots.value, id]
@@ -270,9 +327,17 @@ function confirmOther(hobby: string) {
   editingOther.value = false
 }
 
-function back() {
+function showLock() {
+  showToast('这些回答只用于匹配，不会公开联系方式')
+}
+
+function goBack() {
   editingOther.value = false
-  if (index.value > 0) index.value -= 1
+  if (index.value > 0) {
+    index.value -= 1
+    return
+  }
+  uni.redirectTo({ url: '/pages/school/index' })
 }
 
 function clamp() {
@@ -324,13 +389,10 @@ function showToast(text: string) {
 </script>
 
 <style scoped>
-.quiz {
-  padding-bottom: 180px;
-}
-
-.caption {
-  margin-top: var(--space-4);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-caption);
+.error {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 88px;
 }
 </style>

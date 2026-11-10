@@ -22,7 +22,7 @@ withDefaults(defineProps<{ variant?: 'stack' | 'compact' }>(), { variant: 'stack
 }
 
 .lockup-zh {
-  color: var(--color-text-primary);
+  color: #fff;
   font-size: var(--font-size-h1);
   font-weight: 700;
   line-height: 1.3;
@@ -33,8 +33,8 @@ withDefaults(defineProps<{ variant?: 'stack' | 'compact' }>(), { variant: 'stack
 }
 
 .lockup-en {
-  margin-top: var(--space-1);
-  color: var(--color-text-secondary);
+  margin-top: 1px;
+  color: rgba(255, 255, 255, 0.74);
   font-size: var(--font-size-caption);
   font-weight: 400;
   line-height: 1.3;

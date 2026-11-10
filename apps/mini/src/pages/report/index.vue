@@ -1,54 +1,86 @@
 <template>
-  <view class="page report">
-    <BrandLockup variant="compact" />
-
-    <view class="card empty" v-if="!card">
-      <view class="h2">本周暂未配对</view>
-      <view class="lead">下周期见。建档后可在等待页触发出配。</view>
+  <view class="phone">
+    <view class="q-top">
+      <button class="q-back" @click="goWaiting">←</button>
+      <view class="brand-pill"><BrandLockup variant="compact" /></view>
+      <button class="q-lock" @click="showLock">锁</button>
     </view>
 
-    <view v-else-if="!opened" class="envelope" :class="{ opening }" @click="openEnvelope">
-      <view class="flap"></view>
-      <view class="seal"></view>
-      <view class="envelope-copy">
-        <text class="h2">本周见面方案</text>
-        <text class="lead">点一下拆开</text>
+    <view class="rc-scroll">
+      <view v-if="!card" class="empty-card">
+        <view class="h2">本周暂未配对</view>
+        <view class="lead">下周期见。建档后可在等待页触发出配。</view>
       </view>
-    </view>
 
-    <view v-else class="poster">
-      <view class="poster-kicker">匹配报告</view>
-      <view class="poster-title">本周见面方案</view>
-      <view class="veil"></view>
-      <view class="field-label">对方称呼</view>
-      <view class="peer">{{ card.peerName }}</view>
-      <view class="meta">
-        <text class="field-label">学校</text>
-        <text class="school">{{ card.schoolName }}</text>
-        <text class="field-label">年级</text>
-        <text class="grade">{{ card.gradeLabel }}</text>
-      </view>
-      <view class="field-label">为何合适</view>
-      <view class="reason">{{ card.reason }}</view>
-      <view class="field-label">建议见面</view>
-      <view class="suggestion">{{ card.suggestion }}</view>
-      <view class="qr-row">
-        <view>
-          <view class="lead">打开方案</view>
-          <view class="wordmark">不如见一面</view>
+      <view v-else-if="!opened" class="envelope" :class="{ opening }" @click="openEnvelope">
+        <view class="flap"></view>
+        <view class="seal">💌</view>
+        <view class="envelope-copy">
+          <text class="h2">本周见面方案</text>
+          <text class="lead">点一下拆开</text>
         </view>
-        <image v-if="qr" class="qr" :src="qr" mode="aspectFit" />
       </view>
+
+      <template v-else>
+        <view class="report-card">
+          <view class="rc-brand">
+            <text class="zh">不如见一面</text>
+            <text class="en">Better meet IRL</text>
+          </view>
+          <view class="rc-kicker">本周见面方案</view>
+          <view class="rc-illu">
+            <view class="flap"></view>
+            <view class="seal">💌</view>
+          </view>
+          <view class="rc-identity">
+            <view class="rc-name">{{ card.peerName }}</view>
+            <view class="rc-meta">
+              <text class="pill">{{ card.schoolName }}</text>
+              <text class="pill">{{ card.gradeLabel }}</text>
+            </view>
+          </view>
+          <view class="rc-reason">{{ card.reason }}</view>
+          <view class="rc-suggest">
+            <view class="suggest-label">建议见面</view>
+            <view class="suggest-main">{{ card.suggestion }}</view>
+            <view class="rc-tags">
+              <text>公共场合</text>
+              <text>轻松聊天</text>
+            </view>
+          </view>
+          <view class="rc-footer">
+            <text class="rc-cta-hint">打开方案，确认赴约\n不展示任何联系方式</text>
+            <image v-if="qr" class="qr-slot" :src="qr" mode="aspectFit" />
+          </view>
+        </view>
+
+        <view class="share-section">
+          <view class="h3">分享图预览 · 仅 1:1</view>
+          <view class="share-hint">导出 1080×1080 · 不提供 3:4</view>
+          <view class="share-frame">
+            <view class="share-canvas">
+              <text class="s-brand">不如见一面</text>
+              <text class="s-en">Better meet IRL</text>
+              <text class="s-kicker">本周见面方案</text>
+              <view class="s-illu">💌</view>
+              <text class="s-name">{{ card.peerName }}</text>
+              <text class="s-meta">{{ card.schoolName }} · {{ card.gradeLabel }}</text>
+              <text class="s-reason">「{{ card.reason }}」</text>
+              <text class="s-suggest">{{ card.suggestion }}</text>
+              <view class="s-foot">
+                <text class="share-hint">扫码打开本周见面方案</text>
+                <image v-if="qr" class="s-qr" :src="qr" mode="aspectFit" />
+              </view>
+            </view>
+          </view>
+        </view>
+      </template>
     </view>
 
-    <view v-if="opened && card" class="bottom-cta">
-      <button class="primary" :disabled="saving" @click="saveSquare">{{ saving ? '生成中' : '保存分享' }}</button>
-      <button class="secondary" @click="respond('accept')">确认赴约</button>
-      <button class="ghost" @click="respond('reschedule', 'sun_afternoon')">改到周日下午</button>
-      <view v-if="card.map" class="lead">{{ card.map.label }} · 地图占位</view>
-      <view v-if="card.face" class="lead">核身占位</view>
+    <view v-if="opened && card" class="bottom-cta stack">
+      <button class="btn-primary" :disabled="saving" @click="saveSquare">{{ saving ? '生成中…' : '保存分享（1:1）' }}</button>
+      <button class="btn-secondary" @click="respond('accept')">确认赴约</button>
     </view>
-
     <view v-if="toast" class="toast">{{ toast }}</view>
     <view v-if="error" class="error">{{ error }}</view>
   </view>
@@ -174,6 +206,14 @@ async function exportShare(ratio: ShareRatio) {
   }
 }
 
+function goWaiting() {
+  uni.redirectTo({ url: '/pages/waiting/index' })
+}
+
+function showLock() {
+  showToast('报告里没有联系方式，只用于确认这次见面')
+}
+
 function showToast(text: string) {
   toast.value = text
   window.setTimeout(() => {
@@ -183,155 +223,260 @@ function showToast(text: string) {
 </script>
 
 <style scoped>
-.report {
-  min-height: 100vh;
+.rc-scroll {
+  flex: 1;
+  padding: 12px 16px 140px;
+}
+
+.report-card,
+.share-canvas,
+.empty-card {
+  color: #14203a;
+}
+
+.report-card {
+  position: relative;
+  overflow: hidden;
+  padding: 24px 20px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 16px;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.94), rgba(214, 230, 255, 0.88));
+  box-shadow: 0 16px 36px rgba(7, 22, 68, 0.22);
+}
+
+.rc-brand {
+  display: flex;
+  flex-direction: column;
+}
+
+.rc-brand .zh {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.rc-brand .en,
+.s-en,
+.share-hint,
+.rc-cta-hint {
+  color: #5d6b86;
+  font-size: 10px;
+}
+
+.rc-kicker,
+.s-kicker {
+  margin: 10px 0 14px;
+  color: #e40089;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.rc-illu,
+.s-illu {
+  display: grid;
+  height: 120px;
+  place-items: center;
+  margin-bottom: 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(126, 182, 255, 0.55), rgba(47, 111, 228, 0.35));
+  font-size: 36px;
+}
+
+.rc-identity,
+.s-name,
+.s-meta,
+.s-reason,
+.s-suggest {
+  text-align: center;
+}
+
+.rc-name,
+.s-name {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.rc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.pill {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  color: #163a9a;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.rc-reason {
+  margin: 16px 0;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.rc-reason::before {
+  content: '“';
+  color: #e40089;
+}
+
+.rc-reason::after {
+  content: '”';
+  color: #e40089;
+}
+
+.rc-suggest {
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.suggest-label {
+  color: #7b879c;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.suggest-main,
+.s-suggest {
+  margin-top: 6px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.rc-tags text {
+  display: inline-block;
+  margin: 8px 6px 0 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(228, 0, 137, 0.12);
+  color: #b8006c;
+  font-size: 12px;
+}
+
+.rc-footer,
+.s-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.qr-slot,
+.s-qr {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.share-section {
+  margin-top: 28px;
+  color: #fff;
+}
+
+.share-section .h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.share-frame {
+  width: 100%;
+  margin-top: 12px;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+}
+
+.share-canvas {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 20px;
+  background: linear-gradient(180deg, #7eb6ff, #163a9a 70%, #0b1d55);
+  color: #fff;
+}
+
+.s-brand,
+.s-name,
+.s-reason,
+.s-suggest {
+  color: #fff;
+}
+
+.s-meta,
+.s-en,
+.share-canvas .share-hint {
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.s-kicker {
+  color: #e40089;
 }
 
 .envelope {
   position: relative;
   height: 420px;
-  margin-top: var(--space-6);
-  border-radius: var(--radius-envelope);
-  background: var(--color-bg-card);
-  box-shadow: var(--shadow-envelope);
   overflow: hidden;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 16px 36px rgba(7, 22, 68, 0.22);
 }
 
-.flap {
+.envelope .flap {
   position: absolute;
-  left: 0;
-  right: 0;
   top: 0;
+  right: 0;
+  left: 0;
   height: 46%;
-  background: var(--color-brand-coral);
+  background: rgba(255, 255, 255, 0.28);
   clip-path: polygon(0 0, 100% 0, 50% 100%);
   transform-origin: top center;
-  transition: transform 1000ms var(--ease-out-expo);
+  transition: transform 1000ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .envelope.opening .flap {
   transform: rotateX(180deg);
 }
 
-.seal {
+.envelope .seal {
   position: absolute;
-  left: 50%;
   top: 42%;
-  width: 56px;
-  height: 56px;
-  margin-left: -28px;
+  left: 50%;
+  display: grid;
+  width: 72px;
+  height: 72px;
+  place-items: center;
+  margin-left: -36px;
   border-radius: 50%;
-  background: var(--color-accent-midnight);
+  background: #e40089;
+  font-size: 32px;
 }
 
 .envelope-copy {
   position: absolute;
-  left: 0;
   right: 0;
   bottom: 36px;
+  left: 0;
+  color: #fff;
   text-align: center;
 }
 
-.poster {
-  margin-top: var(--space-4);
-  padding: var(--space-6);
-  border-radius: var(--radius-xl);
-  background: linear-gradient(180deg, var(--color-bg-page), #ffe8e4);
-  box-shadow: var(--shadow-md);
-  animation: reveal 1000ms var(--ease-out-expo);
-}
-
-.poster-kicker,
-.field-label {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-caption);
-}
-
-.poster-title {
-  margin-top: var(--space-1);
-  color: var(--color-brand-coral);
-  font-size: var(--font-size-h2);
-  font-weight: 600;
-}
-
-.veil {
-  height: 72px;
-  margin: var(--space-4) 0;
-  border-radius: var(--radius-lg);
-  background: var(--color-poster-veil);
-}
-
-.peer {
-  margin-top: var(--space-1);
-  font-size: var(--font-size-display);
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.meta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  margin-top: var(--space-4);
-}
-
-.school,
-.grade {
-  color: var(--color-accent-midnight);
-  font-size: var(--font-size-h3);
-  font-weight: 600;
-}
-
-.reason {
-  margin-top: var(--space-2);
-  font-size: var(--font-size-h2);
-  font-weight: 600;
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.suggestion {
-  margin-top: var(--space-2);
-  font-size: var(--font-size-body);
-}
-
-.qr-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-top: var(--space-6);
-}
-
-.qr {
-  width: 72px;
-  height: 72px;
-  background: #fff;
-}
-
-.wordmark {
-  margin-top: var(--space-1);
-  font-size: var(--font-size-caption);
-}
-
-@keyframes reveal {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+.empty-card {
+  padding: 28px 16px;
+  color: #fff;
+  text-align: center;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .flap,
-  .poster {
+  .envelope .flap {
     transition: none;
-    animation: none;
   }
 }
 </style>

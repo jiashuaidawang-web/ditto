@@ -26,46 +26,47 @@ export async function renderSharePng(fields: PosterFields, ratio: ShareRatio = '
   if (!ctx) throw new Error('canvas unavailable')
 
   const gradient = ctx.createLinearGradient(0, 0, 0, height)
-  gradient.addColorStop(0, '#FFF9F7')
-  gradient.addColorStop(1, '#FFE8E4')
+  gradient.addColorStop(0, '#7EB6FF')
+  gradient.addColorStop(0.45, '#2F6FE4')
+  gradient.addColorStop(1, '#0B1D55')
   ctx.fillStyle = gradient
   ctx.fillRect(0, 0, width, height)
 
-  ctx.fillStyle = 'rgba(91, 75, 138, 0.1)'
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.16)'
   ctx.beginPath()
   ctx.arc(width * 0.82, height * 0.18, 180, 0, Math.PI * 2)
   ctx.fill()
 
   const pad = 72
-  ctx.fillStyle = '#1F1A24'
+  ctx.fillStyle = '#FFFFFF'
   ctx.font = '700 54px "PingFang SC", "Microsoft YaHei", sans-serif'
   ctx.fillText('不如见一面', pad, 120)
-  ctx.fillStyle = '#6B6570'
+  ctx.fillStyle = 'rgba(255,255,255,0.74)'
   ctx.font = '400 28px "PingFang SC", "Microsoft YaHei", sans-serif'
   ctx.fillText('Better meet IRL', pad, 164)
-  ctx.fillStyle = '#FF6B6B'
+  ctx.fillStyle = '#E40089'
   ctx.font = '600 36px "PingFang SC", "Microsoft YaHei", sans-serif'
   ctx.fillText('本周见面方案', pad, 230)
 
-  ctx.fillStyle = '#1F1A24'
+  ctx.fillStyle = '#FFFFFF'
   ctx.font = '700 64px "PingFang SC", "Microsoft YaHei", sans-serif'
   ctx.fillText(fields.peerName, pad, 380)
-  ctx.fillStyle = '#5B4B8A'
+  ctx.fillStyle = '#D7E6FF'
   ctx.font = '500 32px "PingFang SC", "Microsoft YaHei", sans-serif'
   wrapText(ctx, `${fields.schoolName} · ${fields.gradeLabel}`, pad, 440, width - pad * 2, 44)
 
-  ctx.fillStyle = '#1F1A24'
+  ctx.fillStyle = '#FFFFFF'
   ctx.font = '600 40px "PingFang SC", "Microsoft YaHei", sans-serif'
   wrapText(ctx, fields.reason, pad, 580, width - pad * 2, 56, 2)
 
-  ctx.fillStyle = '#6B6570'
+  ctx.fillStyle = 'rgba(255,255,255,0.78)'
   ctx.font = '400 32px "PingFang SC", "Microsoft YaHei", sans-serif'
   ctx.fillText(fields.suggestion, pad, height - 280)
 
   const qrUrl = await QRCode.toDataURL(fields.url, {
     margin: 0,
     width: 216,
-    color: { dark: '#1F1A24', light: '#FFFFFF' },
+    color: { dark: '#0B1D55', light: '#FFFFFF' },
   })
   const qr = await loadImage(qrUrl)
   const qrSize = 216
@@ -74,7 +75,7 @@ export async function renderSharePng(fields: PosterFields, ratio: ShareRatio = '
   ctx.fillStyle = '#FFFFFF'
   ctx.fillRect(qrX - 16, qrY - 16, qrSize + 32, qrSize + 32)
   ctx.drawImage(qr, qrX, qrY, qrSize, qrSize)
-  ctx.fillStyle = '#6B6570'
+  ctx.fillStyle = 'rgba(255,255,255,0.78)'
   ctx.font = '400 24px "PingFang SC", "Microsoft YaHei", sans-serif'
   ctx.fillText('打开方案', pad, qrY + 48)
   ctx.fillText('不如见一面', pad, qrY + 88)
