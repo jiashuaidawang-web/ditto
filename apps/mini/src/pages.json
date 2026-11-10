@@ -1,6 +1,13 @@
 {
   "pages": [
     {
+      "path": "pages/welcome/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "不如见一面"
+      }
+    },
+    {
       "path": "pages/login/index",
       "style": { "navigationBarTitleText": "登录" }
     },
