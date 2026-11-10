@@ -1,0 +1,63 @@
+{
+  "pages": [
+    {
+      "path": "pages/welcome/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "不如见一面"
+      }
+    },
+    {
+      "path": "pages/login/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "登录"
+      }
+    },
+    {
+      "path": "pages/login/otp",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "验证码"
+      }
+    },
+    {
+      "path": "pages/school/index",
+      "style": { "navigationBarTitleText": "选择学校" }
+    },
+    {
+      "path": "pages/questionnaire/index",
+      "style": { "navigationBarTitleText": "建档" }
+    },
+    {
+      "path": "pages/waiting/index",
+      "style": { "navigationBarTitleText": "等待见面" }
+    },
+    {
+      "path": "pages/report/index",
+      "style": { "navigationBarTitleText": "见面方案" }
+    },
+    {
+      "path": "pages/verify/index",
+      "style": { "navigationBarTitleText": "学生认证" }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": { "navigationBarTitleText": "资料与空闲" }
+    },
+    {
+      "path": "pages/match/index",
+      "style": { "navigationBarTitleText": "本周见面方案" }
+    },
+    {
+      "path": "pages/confirm/index",
+      "style": { "navigationBarTitleText": "确认见面" }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "不如见一面",
+    "navigationBarBackgroundColor": "#1e4f9e",
+    "backgroundColor": "#003d72"
+  }
+}

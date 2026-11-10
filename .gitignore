@@ -1,0 +1,21 @@
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.DS_Store
+*.log
+
+# secrets
+**/.env
+**/.env.local
+**/.env.*.local
+!**/.env.example
+
+# Prisma Client is generated
+apps/api/src/generated/
+
+# uni-app build output
+apps/mini/dist/
+apps/mini/unpackage/
+apps/mini/.hbuilderx/

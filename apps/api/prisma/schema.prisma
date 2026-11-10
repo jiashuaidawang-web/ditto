@@ -1,0 +1,225 @@
+// Ditto MVP schema. Connection URL lives in prisma7.config.ts (Prisma 7).
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum VerifyStrategy {
+  xuexin
+  student_card_ocr
+  edu_email
+}
+
+enum VerifyStatus {
+  todo
+  pending
+  verified
+  rejected
+}
+
+enum DropPhase {
+  open
+  cutoff
+  released
+  closed
+}
+
+enum MatchStatus {
+  proposed
+  accepted
+  reschedule_requested
+  declined
+  checked_in
+  feedback_done
+  cancelled
+}
+
+model User {
+  id              String   @id @default(cuid())
+  /// WeChat mini program openid. Empty for H5 OTP accounts.
+  openid          String?  @unique
+  unionid         String?
+  /// Mainland mobile, 11 digits, no +86. Friday login.
+  phone           String?  @unique
+  email           String?  @unique
+  phoneVerified   Boolean  @default(false)
+  emailVerified   Boolean  @default(false)
+  /// WeChat session_key. Stub value only until code2session is live. Never log or return this.
+  sessionKey      String?
+  nickname        String?
+  avatarUrl       String?
+  studentVerified Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  profile       Profile?
+  slots         AvailabilitySlot[]
+  verifications StudentVerification[]
+  matchesAsA    MatchPair[]            @relation("MatchUserA")
+  matchesAsB    MatchPair[]            @relation("MatchUserB")
+  feedbacks     Feedback[]
+  reportLinks   ReportLink[]
+}
+
+model UserEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  sessionId String
+  page      String
+  action    String
+  payload   Json?
+  dwellMs   Int?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([sessionId, createdAt])
+}
+
+model QuestionnaireDraft {
+  id        String   @id @default(cuid())
+  sessionId String   @unique
+  userId    String?
+  answers   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Profile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName String?
+  gender      String?
+  /// Campus year index. MVP: 1 = 大一/研一. Grade gap rule uses this number.
+  grade       Int?
+  major       String?
+  bio         String?
+  schoolId    String?
+  schoolName  String?
+  preferences Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([schoolId, grade])
+}
+
+model AvailabilitySlot {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// ISO weekday in Asia/Shanghai. 1 = Monday ... 7 = Sunday.
+  weekday   Int
+  /// Minutes from midnight, Asia/Shanghai wall clock.
+  startMin  Int
+  endMin    Int
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model StudentVerification {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategy  VerifyStrategy
+  status    VerifyStatus   @default(todo)
+  payload   Json?
+  todo      String
+  createdAt DateTime       @default(now())
+
+  @@index([userId, strategy])
+}
+
+model DropCycle {
+  id        String    @id @default(cuid())
+  /// ISO week in Asia/Shanghai, e.g. 2026-W46.
+  weekKey   String    @unique
+  timezone  String    @default("Asia/Shanghai")
+  cutoffAt  DateTime
+  releaseAt DateTime
+  phase     DropPhase @default(open)
+  log       Json      @default("[]")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  pairs     MatchPair[]
+}
+
+model MatchPair {
+  id            String      @id @default(cuid())
+  dropCycleId   String
+  dropCycle     DropCycle   @relation(fields: [dropCycleId], references: [id], onDelete: Cascade)
+  userAId       String
+  userBId       String
+  userA         User        @relation("MatchUserA", fields: [userAId], references: [id])
+  userB         User        @relation("MatchUserB", fields: [userBId], references: [id])
+  schoolId      String
+  gradeGap      Int
+  reason        String
+  status        MatchStatus @default(proposed)
+  suggestedAt   DateTime?
+  meetupAt      DateTime?
+  suggestionNote String?
+  userAResponse String?
+  userBResponse String?
+  userACheckedIn Boolean    @default(false)
+  userBCheckedIn Boolean    @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  feedbacks     Feedback[]
+  reportLinks   ReportLink[]
+
+  @@unique([dropCycleId, userAId, userBId])
+  @@index([userAId])
+  @@index([userBId])
+}
+
+model Feedback {
+  id          String    @id @default(cuid())
+  matchPairId String
+  matchPair   MatchPair @relation(fields: [matchPairId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  rating      Int?
+  noShow      Boolean   @default(false)
+  comment     String?
+  createdAt   DateTime  @default(now())
+
+  @@unique([matchPairId, userId])
+}
+
+/// One-time code for SMS or email login. Only the hash is stored.
+model OtpChallenge {
+  id         String    @id @default(cuid())
+  /// sms | email
+  channel    String
+  /// Normalized phone or lowercased email.
+  target     String
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  @@index([channel, target])
+}
+
+/// Capability URL for the H5 report card. Knowing the token is enough to open that person's card.
+model ReportLink {
+  token       String    @id
+  matchPairId String
+  matchPair   MatchPair @relation(fields: [matchPairId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([matchPairId, userId])
+}
