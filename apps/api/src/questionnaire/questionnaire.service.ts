@@ -29,6 +29,7 @@ export class QuestionnaireService {
       lookingFor: [dto.lookingFor],
       interests: parsed.value.interests,
       specialties: parsed.value.specialties,
+      extras: dto.extras ?? {},
       questionnaireComplete: true,
     }
 

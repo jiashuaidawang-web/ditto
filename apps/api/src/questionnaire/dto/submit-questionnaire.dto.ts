@@ -5,11 +5,11 @@ export class SubmitQuestionnaireDto {
   @MinLength(1)
   displayName!: string
 
-  @IsIn(['female', 'male', 'unspecified'])
-  gender!: 'female' | 'male' | 'unspecified'
+  @IsIn(['female', 'male', 'nonbinary', 'unspecified'])
+  gender!: 'female' | 'male' | 'nonbinary' | 'unspecified'
 
-  @IsIn(['women', 'men', 'any'])
-  lookingFor!: 'women' | 'men' | 'any'
+  @IsIn(['women', 'men', 'nonbinary', 'any'])
+  lookingFor!: 'women' | 'men' | 'nonbinary' | 'any'
 
   @IsInt()
   @Min(1)
@@ -28,6 +28,11 @@ export class SubmitQuestionnaireDto {
   @IsOptional()
   @IsObject()
   specialties?: Record<string, string[]>
+
+  /** Later questionnaire frames. Stored as-is; not used by matching. */
+  @IsOptional()
+  @IsObject()
+  extras?: Record<string, unknown>
 
   @IsArray()
   @IsString({ each: true })

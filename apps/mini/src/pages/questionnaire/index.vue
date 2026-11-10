@@ -9,6 +9,7 @@
       <view class="progress-seg" :class="segClass(1)"></view>
       <view class="progress-seg" :class="segClass(2)"></view>
       <view class="progress-seg" :class="segClass(3)"></view>
+      <view class="progress-seg" :class="segClass(4)"></view>
     </view>
 
     <view class="q-body">
@@ -18,20 +19,70 @@
       <view class="bubble" v-else-if="current.kind === 'specialty'">{{ current.title }}</view>
       <view class="bubble" v-else>{{ current.title }}</view>
       <view class="bubble-hint" v-if="'caption' in current && current.caption">{{ current.caption }}</view>
+      <view class="privacy" v-if="'privacy' in current && current.privacy">🔒 {{ current.privacy }}</view>
 
       <view v-if="loading" class="skeleton"></view>
-      <input v-else-if="current.kind === 'text'" class="field" v-model="displayName" :placeholder="textPlaceholder" />
+      <input v-else-if="current.kind === 'text' && current.id === 'displayName'" class="field" v-model="displayName" :placeholder="textPlaceholder" />
+      <input v-else-if="current.kind === 'text'" class="field" v-model="texts[current.id]" :placeholder="current.placeholder || ''" />
 
-      <view v-else-if="current.kind === 'single'" class="chip-list">
+      <view v-else-if="current.kind === 'single' || (current.kind === 'multi' && current.id !== 'availability')" class="chip-list">
         <button
           v-for="option in current.options || []"
           :key="option.id"
           class="chip"
-          :class="{ selected: isOn(option.id) }"
+          :class="{ selected: isOn(option.id), wide: current.wide }"
           @click="choose(option.id)"
         >
+          <text v-if="option.emoji" class="emoji">{{ option.emoji }}</text>
           <text class="chip-label">{{ option.label }}</text>
           <text class="check">✓</text>
+        </button>
+      </view>
+
+      <view v-else-if="current.kind === 'date'" class="slider-card">
+        <input class="field" type="date" v-model="birthday" />
+      </view>
+      <view v-else-if="current.kind === 'number'" class="slider-card">
+        <input class="field" type="number" v-model="heightCm" placeholder="172" />
+        <view class="bubble-hint">厘米</view>
+      </view>
+      <view v-else-if="current.kind === 'range'" class="slider-card">
+        <input class="field" type="number" v-model="ageMin" placeholder="最小年龄" />
+        <input class="field" type="number" v-model="ageMax" placeholder="最大年龄" />
+      </view>
+      <view v-else-if="current.kind === 'school'" class="chip-list">
+        <button
+          v-for="school in schools"
+          :key="school.id"
+          class="chip wide"
+          :class="{ selected: answers.school === school.id }"
+          @click="chooseSchool(school.id)"
+        >
+          <text class="chip-label">{{ school.cardName || school.name }}</text>
+          <text class="check">✓</text>
+        </button>
+      </view>
+      <view v-else-if="current.kind === 'interstitial'" class="illustration">📒</view>
+      <view v-else-if="current.kind === 'email'">
+        <input class="field" v-model="email" placeholder="you@email.com" />
+      </view>
+      <view v-else-if="current.kind === 'otp'">
+        <input class="field" v-model="otpCode" placeholder="6 位验证码" />
+      </view>
+      <view v-else-if="current.kind === 'photos'" class="photo-grid">
+        <view class="photo-slot">＋</view>
+        <view class="photo-slot filled">📷</view>
+        <view class="photo-slot filled">🌆</view>
+      </view>
+      <view v-else-if="current.kind === 'rank'" class="chip-list">
+        <button
+          v-for="(hobby, rank) in rankList"
+          :key="hobby"
+          class="chip wide"
+          @click="promoteRank(rank)"
+        >
+          <text class="emoji">{{ rank + 1 }}</text>
+          <text class="chip-label">{{ hobbyLabel(hobby) }}</text>
         </button>
       </view>
 
@@ -133,10 +184,13 @@ interface Option {
 }
 interface Step {
   id: string
-  kind: 'text' | 'single' | 'multi' | 'interests'
+  kind: 'text' | 'single' | 'multi' | 'interests' | 'date' | 'number' | 'range' | 'school' | 'interstitial' | 'email' | 'otp' | 'photos' | 'rank'
   title: string
   caption?: string
+  privacy?: string
   placeholder?: string
+  illustration?: string
+  wide?: boolean
   max?: number
   customLabel?: string
   options?: Array<Option & { time?: string }>
@@ -164,6 +218,16 @@ const answers = ref<Record<string, string>>({})
 const interestOrder = ref<string[]>([])
 const picks = ref<Record<string, string[]>>({})
 const slots = ref<string[]>([])
+const texts = ref<Record<string, string>>({})
+const birthday = ref('')
+const heightCm = ref('172')
+const ageMin = ref('20')
+const ageMax = ref('28')
+const email = ref('')
+const otpCode = ref('')
+const schools = ref<Array<{ id: string; name: string; cardName?: string }>>([])
+const multiBags = ref<Record<string, string[]>>({})
+const rankOrder = ref<string[]>([])
 const customDraft = ref('')
 const otherDraft = ref('')
 const editingOther = ref(false)
@@ -204,19 +268,32 @@ const phase = computed(() => {
 })
 
 function segClass(part: number) {
-  if (phase.value === 'slots') return 'fill'
-  if (phase.value === 'interest') {
-    if (current.value.kind === 'specialty') return part <= 2 ? 'fill' : ''
-    return part === 1 ? 'fill' : part === 2 ? 'partial' : ''
-  }
-  return part === 1 ? 'partial' : ''
+  const id = current.value.id
+  const late = ['school', 'prefsIntro', 'email', 'emailOtp', 'work', 'education', 'attribution', 'opener', 'dealbreakers', 'intent', 'matchPace', 'budget', 'eduImportance', 'photos', 'hobbyRanking']
+  const prefs = ['ethnicity', 'ethnicityPrefs', 'ageRange', 'height', 'heightMatch']
+  let cursor = 1
+  if (current.value.kind === 'specialty' || id === 'interests' || id === 'availability') cursor = 2
+  if (prefs.includes(id)) cursor = 3
+  if (late.includes(id)) cursor = 4
+  if (part < cursor) return 'fill'
+  if (part === cursor) return 'partial'
+  return ''
 }
 
 const canNext = computed(() => {
   const step = current.value
-  if (step.kind === 'text') return displayName.value.trim().length > 0
+  if (step.kind === 'text' && step.id === 'displayName') return displayName.value.trim().length > 0
+  if (step.kind === 'text') return (texts.value[step.id] || '').trim().length > 0
   if (step.kind === 'single') return Boolean(answers.value[step.id])
-  if (step.kind === 'multi') return slots.value.length > 0
+  if (step.kind === 'multi' && step.id === 'availability') return slots.value.length > 0
+  if (step.kind === 'multi') return (multiBags.value[step.id] || []).length > 0
+  if (step.kind === 'date') return Boolean(birthday.value)
+  if (step.kind === 'number') return Number(heightCm.value) > 0
+  if (step.kind === 'range') return Number(ageMin.value) > 0 && Number(ageMax.value) >= Number(ageMin.value)
+  if (step.kind === 'school') return Boolean(answers.value.school)
+  if (step.kind === 'email') return email.value.includes('@')
+  if (step.kind === 'otp') return otpCode.value.trim().length >= 4
+  if (step.kind === 'interstitial' || step.kind === 'photos' || step.kind === 'rank') return true
   if (step.kind === 'interests') return interestOrder.value.length > 0
   if (step.kind === 'specialty') return (picks.value[step.hobby] || []).length > 0
   return false
@@ -228,6 +305,8 @@ onShow(async () => {
     const result = await request<{ steps: Step[]; specialties: Record<string, Specialty> }>('/questionnaire', { auth: false })
     schemaSteps.value = result.steps
     specialties.value = result.specialties
+    const schoolList = await request<{ schools: Array<{ id: string; name: string; cardName?: string }> }>('/schools', { auth: false })
+    schools.value = schoolList.schools
   } catch (err) {
     error.value = err instanceof Error ? err.message : '网络不太稳，点一下重试'
   } finally {
@@ -237,7 +316,8 @@ onShow(async () => {
 
 function isOn(id: string) {
   if (current.value.kind === 'single') return answers.value[current.value.id] === id
-  return slots.value.includes(id)
+  if (current.value.id === 'availability') return slots.value.includes(id)
+  return (multiBags.value[current.value.id] || []).includes(id)
 }
 
 function choose(id: string) {
@@ -248,15 +328,18 @@ function choose(id: string) {
     return
   }
   if (step.kind !== 'multi') return
-  if (slots.value.includes(id)) {
-    slots.value = slots.value.filter((item) => item !== id)
+  const bag = step.id === 'availability' ? slots : { value: multiBags.value[step.id] || [] }
+  if (step.id === 'availability') {
+    if (slots.value.includes(id)) slots.value = slots.value.filter((item) => item !== id)
+    else slots.value = [...slots.value, id]
     return
   }
-  if (step.max && slots.value.length >= step.max) {
-    showToast(`最多选 ${step.max} 段`)
-    return
+  const currentBag = multiBags.value[step.id] || []
+  multiBags.value = {
+    ...multiBags.value,
+    [step.id]: currentBag.includes(id) ? currentBag.filter((item) => item !== id) : [...currentBag, id],
   }
-  slots.value = [...slots.value, id]
+  void bag
 }
 
 function toggleHobby(id: string) {
@@ -344,10 +427,56 @@ function clamp() {
   if (index.value > flow.value.length - 1) index.value = Math.max(0, flow.value.length - 1)
 }
 
+const rankList = computed(() => {
+  const base = interestOrder.value.filter((id) => !id.startsWith('custom:'))
+  const ordered = rankOrder.value.filter((id) => base.includes(id))
+  return [...ordered, ...base.filter((id) => !ordered.includes(id))]
+})
+
+function hobbyLabel(id: string) {
+  const step = schemaSteps.value.find((item) => item.id === 'interests')
+  return step?.options?.find((option) => option.id === id)?.label || id
+}
+
+function promoteRank(rank: number) {
+  const list = [...rankList.value]
+  if (rank <= 0) return
+  const [item] = list.splice(rank, 1)
+  list.splice(rank - 1, 0, item)
+  rankOrder.value = list
+}
+
+async function chooseSchool(id: string) {
+  answers.value = { ...answers.value, school: id }
+  try {
+    await request('/me/school', { method: 'PUT', data: { schoolId: id } })
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '学校保存失败'
+  }
+}
+
+async function sendEmailCode() {
+  const result = await request<{ devCode?: string; accepted: boolean }>('/otp/send', {
+    method: 'POST',
+    auth: false,
+    data: { channel: 'email', target: email.value.trim() },
+  })
+  if (result.devCode) showToast(`开发验证码 ${result.devCode}`)
+  else if (!result.accepted) showToast('验证码只记在日志里，尚未送达')
+}
+
 async function next() {
   if (!canNext.value || submitting.value) return
   error.value = ''
   editingOther.value = false
+  if (current.value.id === 'email' && !last.value) {
+    try {
+      await sendEmailCode()
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '发码失败'
+      return
+    }
+  }
   if (!last.value) {
     index.value += 1
     return
@@ -365,10 +494,32 @@ async function next() {
         gender: answers.value.gender,
         lookingFor: answers.value.lookingFor,
         grade: Number(answers.value.grade),
-        intent: answers.value.intent,
+        intent: answers.value.intent || 'unsure',
         interests: interestOrder.value,
         specialties: specialtiesPayload,
         slots: slots.value,
+        extras: {
+          student: answers.value.student,
+          birthday: birthday.value,
+          ageMin: Number(ageMin.value),
+          ageMax: Number(ageMax.value),
+          heightCm: Number(heightCm.value),
+          heightMatch: answers.value.heightMatch,
+          ethnicity: multiBags.value.ethnicity || [],
+          ethnicityPrefs: multiBags.value.ethnicityPrefs || [],
+          email: email.value.trim(),
+          emailCodeEntered: otpCode.value.trim().length >= 4,
+          work: texts.value.work || '',
+          education: answers.value.education,
+          attribution: answers.value.attribution,
+          opener: texts.value.opener || '',
+          dealbreakers: multiBags.value.dealbreakers || [],
+          matchPace: answers.value.matchPace,
+          budget: answers.value.budget,
+          eduImportance: answers.value.eduImportance,
+          photos: 'placeholder',
+          hobbyRanking: rankList.value,
+        },
       },
     })
     uni.redirectTo({ url: '/pages/waiting/index' })
@@ -389,6 +540,41 @@ function showToast(text: string) {
 </script>
 
 <style scoped>
+.privacy {
+  margin: 8px 0 14px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+  text-align: center;
+}
+.illustration {
+  margin-top: 12px;
+  width: min(280px, 100%);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  background: linear-gradient(160deg, #6ec8ff, #3aa0ef 40%, #7ec8ff);
+  font-size: 96px;
+}
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+.photo-slot {
+  display: grid;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px dashed rgba(255, 255, 255, 0.35);
+  border-radius: 16px;
+  background: rgba(12, 36, 82, 0.42);
+  font-size: 28px;
+}
+.photo-slot.filled {
+  border-style: solid;
+  background: linear-gradient(160deg, #6ec8ff, #3aa0ef);
+}
 .error {
   position: absolute;
   left: 16px;
