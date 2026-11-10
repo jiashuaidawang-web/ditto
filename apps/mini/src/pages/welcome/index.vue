@@ -38,10 +38,9 @@
         </view>
       </view>
 
-      <view class="dove" :class="doveClass">
+      <view class="dove" :class="doveClass" :style="doveStyle">
         <image class="dove-shadow" src="/static/dove-shadow.webp" mode="aspectFit" />
-        <image class="dove-img" src="/static/dove-flap-2.webp" mode="aspectFit" />
-        <text class="env">💌</text>
+        <view class="dove-sprite"></view>
       </view>
 
       <button class="mkt-cta" :class="{ on: ctaOn }" @click="join">立即加入</button>
@@ -143,7 +142,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref } from 'vue'
 
 const letters = ['这', '周', '三', '\n', '就', '去', '见', '一', '面']
 const bgOn = ref(false)
@@ -156,7 +155,21 @@ const phoneOn = ref(false)
 const tsOn = ref(false)
 const b1On = ref(false)
 const cardOn = ref(false)
+const DOVE_SCALE = 0.42
+const DOVE_W = 358 * DOVE_SCALE
+const DOVE_VISUAL_BOTTOM = 298 * DOVE_SCALE
 const doveClass = ref('')
+const doveLeft = ref(-DOVE_W - 40)
+const doveTop = ref(24)
+const settle = { left: 120, top: 96 }
+const page = getCurrentInstance()
+const doveStyle = computed(() => ({
+  left: `${doveLeft.value}px`,
+  top: `${doveTop.value}px`,
+  transition: doveClass.value === 'fly'
+    ? 'left 0.5s cubic-bezier(0.22, 0.8, 0.28, 1), top 0.5s cubic-bezier(0.22, 0.8, 0.28, 1)'
+    : 'none',
+}))
 const ctaOn = ref(false)
 const bgLoop = ref(false)
 const typingOn = ref(false)
@@ -183,6 +196,30 @@ function later(ms: number, fn: () => void) {
   timers.push(setTimeout(fn, ms))
 }
 
+function measureDove() {
+  const proxy = page?.proxy
+  if (!proxy) return
+  uni.createSelectorQuery()
+    .in(proxy)
+    .select('.hero')
+    .boundingClientRect()
+    .select('.hero-title')
+    .boundingClientRect()
+    .exec((rects) => {
+      const hero = rects?.[0] as { top: number; left: number; width: number } | null
+      const title = rects?.[1] as { top: number; left: number; width: number; height: number } | null
+      if (!hero || !title || title.width < 8) return
+      const titleTop = title.top - hero.top
+      const titleLeft = title.left - hero.left
+      settle.top = titleTop - DOVE_VISUAL_BOTTOM + 26
+      settle.left = titleLeft + title.width / 2 - DOVE_W / 2
+      if (doveClass.value === 'bob' || doveClass.value === 'fly') {
+        doveLeft.value = settle.left
+        doveTop.value = settle.top
+      }
+    })
+}
+
 function reset() {
   timers.forEach(clearTimeout)
   timers = []
@@ -195,6 +232,8 @@ function reset() {
   lettersOn.value = phoneOn.value = tsOn.value = b1On.value = cardOn.value = false
   ctaOn.value = bgLoop.value = typingOn.value = replyOn.value = false
   doveClass.value = ''
+  doveLeft.value = -DOVE_W - 40
+  doveTop.value = 24
 }
 
 function play() {
@@ -208,7 +247,10 @@ function play() {
   })
   later(500, () => {
     lettersOn.value = true
+    measureDove()
   })
+  later(900, measureDove)
+  later(1600, measureDove)
   later(1500, () => {
     phoneOn.value = true
   })
@@ -218,12 +260,18 @@ function play() {
   later(1700, () => {
     b1On.value = true
     doveClass.value = 'spawn'
+    doveLeft.value = -DOVE_W - 28
+    doveTop.value = Math.max(8, settle.top - 46)
   })
   later(1800, () => {
     cardOn.value = true
   })
   later(1900, () => {
     doveClass.value = 'fly'
+    requestAnimationFrame(() => {
+      doveLeft.value = settle.left
+      doveTop.value = settle.top
+    })
   })
   later(2500, () => {
     doveClass.value = 'bob'
@@ -351,11 +399,11 @@ onBeforeUnmount(() => {
 .mkt-cta.on { animation: fadeIn 0.4s ease-out forwards; }
 .glass-phone {
   left: 50%;
-  bottom: 26%;
+  bottom: 88px;
   z-index: 4;
   display: flex;
-  width: 210px;
-  height: 340px;
+  width: 196px;
+  height: 270px;
   flex-direction: column;
   border: 2px solid rgba(255, 255, 255, 0.45);
   border-radius: 28px;
@@ -404,18 +452,19 @@ onBeforeUnmount(() => {
 .typing.hide { opacity: 0; }
 .hero-center {
   position: absolute;
-  top: 12%;
-  right: 16px;
-  left: 16px;
+  top: 232px;
+  right: 12px;
+  left: 12px;
   z-index: 6;
   text-align: center;
+  pointer-events: none;
 }
 .hero-title {
   color: #fff;
   font-family: Georgia, "Songti SC", "Noto Serif SC", serif;
-  font-size: 34px;
+  font-size: 46px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.08;
   text-shadow: 0 2px 18px rgba(10, 40, 80, 0.35);
 }
 .ch {
@@ -429,24 +478,38 @@ onBeforeUnmount(() => {
 .ch.br { display: block; height: 0; }
 .dove {
   position: absolute;
-  top: 36%;
-  left: 0;
-  z-index: 7;
-  width: 110px;
-  height: 110px;
+  z-index: 8;
+  width: 168px;
+  height: 186px;
   opacity: 0;
-  transform: translate(-140%, -50%) rotate(-16deg);
+  pointer-events: none;
 }
-.dove-img, .dove-shadow { position: absolute; inset: 0; width: 110px; height: 110px; }
-.dove .env { position: absolute; right: 0; bottom: 8px; font-size: 18px; }
-.dove.spawn { opacity: 0.85; }
-.dove.fly { animation: doveFly 0.5s cubic-bezier(0.22, 0.8, 0.28, 1) forwards; }
-.dove.bob {
-  top: 36%;
-  left: 50%;
-  opacity: 1;
-  animation: doveBob 2.2s ease-in-out infinite;
+.dove.spawn { opacity: 1; transform: rotate(-16deg); }
+.dove.fly { opacity: 1; transform: rotate(0deg); }
+.dove.bob { opacity: 1; animation: doveBob 2.2s ease-in-out infinite; }
+.dove-shadow {
+  position: absolute;
+  left: 22px;
+  top: 108px;
+  width: 116px;
+  height: 16px;
+  opacity: 0.28;
 }
+.dove-sprite {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 358px;
+  height: 364px;
+  background-image: url('/static/dove-flap-2.webp');
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 6086px 364px;
+  animation: flap 0.72s steps(17) infinite;
+  transform: scale(0.42);
+  transform-origin: top left;
+}
+.dove.fly .dove-sprite { animation-duration: 0.45s; }
 .screen {
   max-width: 390px;
   min-height: 100vh;
@@ -494,13 +557,11 @@ onBeforeUnmount(() => {
 .polaroid { margin-top: 12px; padding: 10px; border-radius: 8px; background: #fff; color: #1a2744; }
 .pic { height: 120px; border-radius: 4px; background: linear-gradient(135deg, #7eb6e8, #2f62bb 60%, #003d72); }
 .pic.alt { background: linear-gradient(135deg, #5a9fd4, #003d72); }
-@keyframes doveFly {
-  0% { opacity: 0.9; transform: translate(-140%, -55%) rotate(-16deg) scale(0.9); }
-  55% { opacity: 1; transform: translate(-70%, -62%) rotate(4deg) scale(1.04); }
-  100% { opacity: 1; transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+@keyframes flap {
+  to { background-position: -6086px 0; }
 }
 @keyframes doveBob {
-  0%, 100% { transform: translate(-50%, -50%) translateY(0) rotate(-2deg); }
-  50% { transform: translate(-50%, -50%) translateY(-10px) rotate(2deg); }
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-10px) rotate(1.5deg); }
 }
 </style>

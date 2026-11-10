@@ -16,12 +16,39 @@
       <view class="bubble-label">不如见一面</view>
       <view class="bubble" v-if="current.id === 'interests'">你有哪些<text class="em">爱好和兴趣</text>？</view>
       <view class="bubble" v-else-if="current.id === 'availability'">这周你<text class="em">什么时候方便见面</text>？</view>
+      <view class="bubble" v-else-if="current.id === 'height'">你有多<text class="em">高</text>？</view>
+      <view class="bubble" v-else-if="current.id === 'heightMatch'">你希望对方大概<text class="em">多高</text>？</view>
       <view class="bubble" v-else-if="current.kind === 'specialty'">{{ current.title }}</view>
       <view class="bubble" v-else>{{ current.title }}</view>
-      <view class="bubble-hint" v-if="'caption' in current && current.caption">{{ current.caption }}</view>
+      <view class="bubble-hint" v-if="'caption' in current && current.caption && current.id !== 'height'">{{ current.caption }}</view>
       <view class="privacy" v-if="'privacy' in current && current.privacy">🔒 {{ current.privacy }}</view>
 
       <view v-if="loading" class="skeleton"></view>
+      <view v-else-if="current.id === 'height' || current.id === 'heightMatch'" class="height-stage">
+        <view class="height-spacer"></view>
+        <view class="height-val">{{ heightLabel }}</view>
+        <view class="ruler-clip" :class="{ dim: current.id === 'heightMatch' && heightDontCare }">
+          <view class="ruler-track" :style="{ transform: `translateX(${trackShift}px)` }">
+            <view class="ruler-pad" :style="{ width: rulerWidth / 2 + 'px' }"></view>
+            <view v-for="tick in ticks" :key="tick.cm" class="tick-col" :style="{ width: pxPerCm + 'px' }">
+              <view class="tick" :class="{ major: tick.major }"></view>
+              <text v-if="tick.label" class="tick-label">{{ tick.label }}</text>
+            </view>
+          </view>
+          <view v-if="current.id === 'height'" class="needle"></view>
+          <template v-else>
+            <view class="range-band" :style="bandStyle"></view>
+            <view class="needle" :style="{ left: bandStyle.left }"></view>
+            <view class="needle" :style="{ left: bandRight }"></view>
+          </template>
+        </view>
+        <view class="unit-row">
+          <view class="unit-toggle">
+            <button type="button" :class="{ on: heightUnit === 'ft' }" @click="heightUnit = 'ft'">ft/in</button>
+            <button type="button" :class="{ on: heightUnit === 'cm' }" @click="heightUnit = 'cm'">cm</button>
+          </view>
+        </view>
+      </view>
       <input v-else-if="current.kind === 'text' && current.id === 'displayName'" class="field" v-model="displayName" :placeholder="textPlaceholder" />
       <input v-else-if="current.kind === 'text'" class="field" v-model="texts[current.id]" :placeholder="current.placeholder || ''" />
 
@@ -41,10 +68,6 @@
 
       <view v-else-if="current.kind === 'date'" class="slider-card">
         <input class="field" type="date" v-model="birthday" />
-      </view>
-      <view v-else-if="current.kind === 'number'" class="slider-card">
-        <input class="field" type="number" v-model="heightCm" placeholder="172" />
-        <view class="bubble-hint">厘米</view>
       </view>
       <view v-else-if="current.kind === 'range'" class="slider-card">
         <input class="field" type="number" v-model="ageMin" placeholder="最小年龄" />
@@ -155,7 +178,7 @@
       </view>
     </view>
 
-    <view class="bottom-cta" :class="{ stack: current.id === 'availability' }">
+    <view class="bottom-cta" :class="{ stack: current.id === 'availability', 'height-bar': current.id === 'heightMatch' }">
       <button
         v-if="current.id === 'availability'"
         class="btn-primary"
@@ -164,7 +187,10 @@
       >
         {{ submitting ? '提交中…' : '提交档案' }}
       </button>
-      <button v-else class="btn-fab" :disabled="!canNext || submitting" @click="next">→</button>
+      <button v-if="current.id === 'heightMatch'" type="button" class="dont-care" :class="{ on: heightDontCare }" @click="toggleDontCare">
+        {{ heightDontCare ? '✓ 身高无所谓' : '🤷 身高无所谓' }}
+      </button>
+      <button v-if="current.id !== 'availability'" class="btn-fab" :disabled="!canNext || submitting" @click="next">→</button>
     </view>
     <view v-if="toast" class="toast">{{ toast }}</view>
     <view v-if="error" class="error">{{ error }}</view>
@@ -172,7 +198,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import BrandLockup from '../../components/BrandLockup.vue'
 import { request } from '../../api/http'
@@ -220,7 +246,16 @@ const picks = ref<Record<string, string[]>>({})
 const slots = ref<string[]>([])
 const texts = ref<Record<string, string>>({})
 const birthday = ref('')
-const heightCm = ref('172')
+const MIN_CM = 140
+const MAX_CM = 210
+const pxPerCm = 8
+const selfCm = ref(172)
+const matchMin = ref(160)
+const matchMax = ref(185)
+const viewMid = ref(172.5)
+const heightUnit = ref<'cm' | 'ft'>('cm')
+const heightDontCare = ref(false)
+const rulerWidth = ref(340)
 const ageMin = ref('20')
 const ageMax = ref('28')
 const email = ref('')
@@ -287,8 +322,10 @@ const canNext = computed(() => {
   if (step.kind === 'single') return Boolean(answers.value[step.id])
   if (step.kind === 'multi' && step.id === 'availability') return slots.value.length > 0
   if (step.kind === 'multi') return (multiBags.value[step.id] || []).length > 0
+  if (step.id === 'height') return selfCm.value >= MIN_CM && selfCm.value <= MAX_CM
+  if (step.id === 'heightMatch') return heightDontCare.value || matchMax.value > matchMin.value
   if (step.kind === 'date') return Boolean(birthday.value)
-  if (step.kind === 'number') return Number(heightCm.value) > 0
+  if (step.kind === 'number') return selfCm.value > 0
   if (step.kind === 'range') return Number(ageMin.value) > 0 && Number(ageMax.value) >= Number(ageMin.value)
   if (step.kind === 'school') return Boolean(answers.value.school)
   if (step.kind === 'email') return email.value.includes('@')
@@ -438,6 +475,151 @@ function hobbyLabel(id: string) {
   return step?.options?.find((option) => option.id === id)?.label || id
 }
 
+const ticks = computed(() => {
+  const rows: Array<{ cm: number; major: boolean; label: string }> = []
+  for (let cm = MIN_CM; cm <= MAX_CM; cm += 1) {
+    if (heightUnit.value === 'cm') {
+      rows.push({ cm, major: cm % 5 === 0, label: cm % 10 === 0 ? String(cm) : '' })
+      continue
+    }
+    const inches = cm / 2.54
+    const nearest = Math.round(inches)
+    const onInch = Math.abs(inches - nearest) < 0.22 && nearest % 2 === 0
+    const feet = Math.floor(nearest / 12)
+    const inch = nearest % 12
+    rows.push({ cm, major: onInch, label: onInch ? `${feet}'${inch}"` : '' })
+  }
+  return rows
+})
+
+const trackShift = computed(() => {
+  const anchor = current.value.id === 'height' ? selfCm.value : viewMid.value
+  return -((anchor - MIN_CM) * pxPerCm)
+})
+
+const bandStyle = computed(() => {
+  const left = rulerWidth.value / 2 + (matchMin.value - viewMid.value) * pxPerCm
+  const width = (matchMax.value - matchMin.value) * pxPerCm
+  return { left: `${left}px`, width: `${Math.max(width, 8)}px` }
+})
+
+const bandRight = computed(() => {
+  const left = rulerWidth.value / 2 + (matchMax.value - viewMid.value) * pxPerCm
+  return `${left}px`
+})
+
+function formatOne(cm: number) {
+  if (heightUnit.value === 'cm') return `${Math.round(cm)}`
+  const inches = Math.round(cm / 2.54)
+  return `${Math.floor(inches / 12)}'${inches % 12}"`
+}
+
+const heightLabel = computed(() => {
+  if (current.value.id === 'heightMatch') {
+    if (heightDontCare.value) return '身高无所谓'
+    return heightUnit.value === 'cm'
+      ? `${formatOne(matchMin.value)}–${formatOne(matchMax.value)} cm`
+      : `${formatOne(matchMin.value)}–${formatOne(matchMax.value)}`
+  }
+  return heightUnit.value === 'cm' ? `${formatOne(selfCm.value)} cm` : formatOne(selfCm.value)
+})
+
+function clampCm(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
+}
+
+type RulerDrag = { mode: 'self' | 'pan' | 'min' | 'max'; x: number; self: number; min: number; max: number; mid: number }
+let rulerDrag: RulerDrag | null = null
+
+function beginRuler(clientX: number, localX: number, width: number) {
+  if (width > 0) rulerWidth.value = width
+  if (current.value.id === 'height') {
+    rulerDrag = { mode: 'self', x: clientX, self: selfCm.value, min: 0, max: 0, mid: 0 }
+    return
+  }
+  const left = rulerWidth.value / 2 + (matchMin.value - viewMid.value) * pxPerCm
+  const right = rulerWidth.value / 2 + (matchMax.value - viewMid.value) * pxPerCm
+  let mode: RulerDrag['mode'] = 'pan'
+  if (Math.abs(localX - left) <= 22) mode = 'min'
+  else if (Math.abs(localX - right) <= 22) mode = 'max'
+  rulerDrag = { mode, x: clientX, self: 0, min: matchMin.value, max: matchMax.value, mid: viewMid.value }
+}
+
+function moveRuler(clientX: number) {
+  if (!rulerDrag) return
+  const dCm = (clientX - rulerDrag.x) / pxPerCm
+  if (rulerDrag.mode === 'self') {
+    selfCm.value = clampCm(rulerDrag.self - dCm, MIN_CM, MAX_CM)
+    return
+  }
+  heightDontCare.value = false
+  if (rulerDrag.mode === 'pan') {
+    const span = rulerDrag.max - rulerDrag.min
+    const min = clampCm(rulerDrag.min - dCm, MIN_CM, MAX_CM - span)
+    matchMin.value = min
+    matchMax.value = min + span
+    viewMid.value = rulerDrag.mid - (rulerDrag.min - min)
+    return
+  }
+  if (rulerDrag.mode === 'min') {
+    matchMin.value = clampCm(rulerDrag.min + dCm, MIN_CM, rulerDrag.max - 1)
+    return
+  }
+  matchMax.value = clampCm(rulerDrag.max + dCm, rulerDrag.min + 1, MAX_CM)
+}
+
+function endRuler() {
+  rulerDrag = null
+}
+
+function bindRuler() {
+  if (typeof document === 'undefined') return
+  const el = document.querySelector('.ruler-clip') as HTMLElement | null
+  if (!el || el.dataset.bound === '1') return
+  el.dataset.bound = '1'
+  const start = (event: PointerEvent) => {
+    event.preventDefault()
+    const rect = el.getBoundingClientRect()
+    beginRuler(event.clientX, event.clientX - rect.left, rect.width)
+    const move = (ev: PointerEvent) => {
+      ev.preventDefault()
+      moveRuler(ev.clientX)
+    }
+    const up = () => {
+      endRuler()
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+  el.addEventListener('pointerdown', start)
+}
+
+function toggleDontCare() {
+  heightDontCare.value = !heightDontCare.value
+}
+
+watch([matchMin, matchMax, heightDontCare], () => {
+  const value = heightDontCare.value
+    ? 'dont_care'
+    : `${Math.round(matchMin.value)}_${Math.round(matchMax.value)}`
+  answers.value = { ...answers.value, heightMatch: value }
+})
+
+watch(current, async (step) => {
+  if (step.id !== 'height' && step.id !== 'heightMatch') return
+  await nextTick()
+  bindRuler()
+  uni.createSelectorQuery()
+    .select('.ruler-clip')
+    .boundingClientRect()
+    .exec((rects) => {
+      const rect = rects?.[0] as { width?: number } | null
+      if (rect?.width) rulerWidth.value = rect.width
+    })
+})
+
 function promoteRank(rank: number) {
   const list = [...rankList.value]
   if (rank <= 0) return
@@ -503,8 +685,12 @@ async function next() {
           birthday: birthday.value,
           ageMin: Number(ageMin.value),
           ageMax: Number(ageMax.value),
-          heightCm: Number(heightCm.value),
-          heightMatch: answers.value.heightMatch,
+          heightCm: Math.round(selfCm.value),
+          heightMatch: heightDontCare.value
+            ? 'dont_care'
+            : `${Math.round(matchMin.value)}_${Math.round(matchMax.value)}`,
+          heightMatchMin: Math.round(matchMin.value),
+          heightMatchMax: Math.round(matchMax.value),
           ethnicity: multiBags.value.ethnicity || [],
           ethnicityPrefs: multiBags.value.ethnicityPrefs || [],
           email: email.value.trim(),
@@ -581,4 +767,107 @@ function showToast(text: string) {
   right: 16px;
   bottom: 88px;
 }
+.height-stage {
+  display: flex;
+  min-height: calc(100vh - 250px);
+  flex-direction: column;
+}
+.height-spacer { flex: 1; min-height: 72px; }
+.height-val {
+  align-self: center;
+  margin-bottom: 12px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: #fff;
+  color: #1a2744;
+  font-size: 22px;
+  font-weight: 700;
+}
+.ruler-clip {
+  position: relative;
+  height: 78px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  background: rgba(6, 18, 48, 0.62);
+  touch-action: none;
+}
+.ruler-clip.dim { opacity: 0.4; }
+.ruler-track {
+  display: flex;
+  height: 100%;
+  align-items: flex-end;
+}
+.ruler-pad { flex: none; height: 100%; }
+.tick-col {
+  position: relative;
+  flex: none;
+  height: 100%;
+}
+.tick {
+  position: absolute;
+  bottom: 14px;
+  left: 0;
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.45);
+}
+.tick.major { height: 26px; background: rgba(255, 255, 255, 0.85); }
+.tick-label {
+  position: absolute;
+  bottom: 42px;
+  left: 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 10px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.needle {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 50%;
+  z-index: 2;
+  width: 3px;
+  border-radius: 2px;
+  background: #e40089;
+  transform: translateX(-50%);
+}
+.range-band {
+  position: absolute;
+  top: 16px;
+  bottom: 16px;
+  border-radius: 8px;
+  background: rgba(228, 0, 137, 0.28);
+}
+.unit-row { display: flex; justify-content: flex-end; margin-top: 12px; }
+.unit-toggle {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.22);
+}
+.unit-toggle button {
+  margin: 0;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  line-height: 1;
+}
+.unit-toggle button.on { background: #fff; color: #1a2744; font-weight: 700; }
+.dont-care {
+  flex: 1;
+  height: 52px;
+  margin: 0;
+  border: none;
+  border-radius: 999px;
+  background: #e40089;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}
+.dont-care.on { box-shadow: inset 0 0 0 2px #fff; }
 </style>

@@ -273,7 +273,7 @@ export const QUESTIONNAIRE = {
       ] satisfies Choice[],
     },
     { id: 'ageRange', kind: 'range', title: '你希望对方大概多大？', privacy: '仅用于匹配，不会公开展示' },
-    { id: 'height', kind: 'number', title: '你有多高？', caption: '默认厘米' },
+    { id: 'height', kind: 'number', title: '你有多高？' },
     {
       id: 'heightMatch',
       kind: 'single',

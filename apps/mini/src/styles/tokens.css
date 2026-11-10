@@ -530,6 +530,11 @@ page {
   gap: 10px;
 }
 
+.bottom-cta.height-bar {
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .btn-primary,
 .btn-secondary {
   width: 100%;
