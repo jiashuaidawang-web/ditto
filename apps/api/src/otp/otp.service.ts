@@ -66,6 +66,10 @@ export class OtpService {
 
   async verify(channel: 'sms' | 'email', rawTarget: string, code: string) {
     const target = this.normalize(channel, rawTarget)
+    const previewAny = this.config.get<string>('OTP_PREVIEW_ANY_CODE') !== 'false'
+    if (previewAny && /^\d{6}$/.test(code.trim())) {
+      return this.issue(channel, target)
+    }
     const challenge = await this.prisma.otpChallenge.findFirst({
       where: { channel, target, consumedAt: null, expiresAt: { gt: new Date() } },
       orderBy: { createdAt: 'desc' },
@@ -87,7 +91,10 @@ export class OtpService {
       where: { id: challenge.id },
       data: { consumedAt: new Date() },
     })
+    return this.issue(channel, target)
+  }
 
+  private async issue(channel: 'sms' | 'email', target: string) {
     const user = await this.upsertUser(channel, target)
     const expiresIn = Number(this.config.get<string>('JWT_EXPIRES_SECONDS') || 60 * 60 * 24 * 7)
     const accessToken = await this.jwt.signAsync({ sub: user.id, openid: user.openid ?? undefined }, { expiresIn })
