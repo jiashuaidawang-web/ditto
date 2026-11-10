@@ -8,6 +8,7 @@ import { ReportsModule } from './reports/reports.module'
 import { SchoolsModule } from './schools/schools.module'
 import { AvailabilityModule } from './availability/availability.module'
 import { DropModule } from './drop/drop.module'
+import { EventsModule } from './events/events.module'
 import { HealthModule } from './health/health.module'
 import { MatchesModule } from './matches/matches.module'
 import { MatchingModule } from './matching/matching.module'
@@ -22,6 +23,7 @@ import { StudentVerifyModule } from './student-verify/student-verify.module'
     ScheduleModule.forRoot(),
     PrismaModule,
     HealthModule,
+    EventsModule,
     AuthModule,
     OtpModule,
     SchoolsModule,

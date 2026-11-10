@@ -202,6 +202,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import BrandLockup from '../../components/BrandLockup.vue'
 import { request } from '../../api/http'
+import { saveDraft, track } from '../../track'
 
 interface Option {
   id: string
@@ -268,6 +269,8 @@ const otherDraft = ref('')
 const editingOther = ref(false)
 const error = ref('')
 const toast = ref('')
+let stepMark = Date.now()
+const selectedBefore = new Set<string>()
 
 const flow = computed(() => {
   const steps: Array<Step | SpecialtyStep> = []
@@ -344,11 +347,59 @@ onShow(async () => {
     specialties.value = result.specialties
     const schoolList = await request<{ schools: Array<{ id: string; name: string; cardName?: string }> }>('/schools', { auth: false })
     schools.value = schoolList.schools
+    void logStep('enter')
   } catch (err) {
     error.value = err instanceof Error ? err.message : '网络不太稳，点一下重试'
   } finally {
     loading.value = false
   }
+})
+
+function draftBody() {
+  return {
+    step: current.value.id,
+    displayName: displayName.value,
+    answers: answers.value,
+    interests: interestOrder.value,
+    picks: picks.value,
+    slots: slots.value,
+    texts: texts.value,
+    birthday: birthday.value,
+    selfCm: Math.round(selfCm.value),
+    matchMin: Math.round(matchMin.value),
+    matchMax: Math.round(matchMax.value),
+    heightDontCare: heightDontCare.value,
+    multi: multiBags.value,
+    email: email.value,
+  }
+}
+
+async function logStep(action: string, optionId?: string) {
+  const dwellMs = Date.now() - stepMark
+  stepMark = Date.now()
+  const page = current.value.id || 'questionnaire'
+  let recorded = action
+  if (optionId && (action === 'select' || action === 'deselect')) {
+    const key = `${page}:${optionId}`
+    if (action === 'select' && selectedBefore.has(key)) recorded = 'reselect'
+    if (action === 'select') selectedBefore.add(key)
+  }
+  await track({
+    page,
+    action: recorded,
+    dwellMs,
+    payload: { optionId: optionId || '', value: draftBody() },
+  })
+  await saveDraft(draftBody())
+}
+
+let draftTimer: ReturnType<typeof setTimeout> | null = null
+watch([selfCm, matchMin, matchMax, heightDontCare], () => {
+  if (current.value.id !== 'height' && current.value.id !== 'heightMatch') return
+  if (draftTimer) clearTimeout(draftTimer)
+  draftTimer = setTimeout(() => {
+    void saveDraft(draftBody())
+  }, 400)
 })
 
 function isOn(id: string) {
@@ -361,21 +412,27 @@ function choose(id: string) {
   error.value = ''
   const step = current.value
   if (step.kind === 'single') {
+    const previous = answers.value[step.id]
     answers.value = { ...answers.value, [step.id]: id }
+    void logStep(previous && previous !== id ? 'reselect' : 'select', id)
     return
   }
   if (step.kind !== 'multi') return
   const bag = step.id === 'availability' ? slots : { value: multiBags.value[step.id] || [] }
   if (step.id === 'availability') {
-    if (slots.value.includes(id)) slots.value = slots.value.filter((item) => item !== id)
+    const removing = slots.value.includes(id)
+    if (removing) slots.value = slots.value.filter((item) => item !== id)
     else slots.value = [...slots.value, id]
+    void logStep(removing ? 'deselect' : 'select', id)
     return
   }
   const currentBag = multiBags.value[step.id] || []
+  const removing = currentBag.includes(id)
   multiBags.value = {
     ...multiBags.value,
-    [step.id]: currentBag.includes(id) ? currentBag.filter((item) => item !== id) : [...currentBag, id],
+    [step.id]: removing ? currentBag.filter((item) => item !== id) : [...currentBag, id],
   }
+  void logStep(removing ? 'deselect' : 'select', id)
   void bag
 }
 
@@ -453,8 +510,10 @@ function showLock() {
 
 function goBack() {
   editingOther.value = false
+  void logStep('back')
   if (index.value > 0) {
     index.value -= 1
+    void logStep('enter')
     return
   }
   uni.redirectTo({ url: '/pages/school/index' })
@@ -660,9 +719,12 @@ async function next() {
     }
   }
   if (!last.value) {
+    void logStep('leave')
     index.value += 1
+    void logStep('enter')
     return
   }
+  void logStep('submit')
   submitting.value = true
   const specialtiesPayload: Record<string, string[]> = {}
   for (const id of interestOrder.value) {

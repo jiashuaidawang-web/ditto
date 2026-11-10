@@ -35,6 +35,7 @@
 import { computed, ref } from 'vue'
 import { request } from '../../api/http'
 import { setToken, setUserId } from '../../config'
+import { claimSession } from '../../track'
 
 const digits = ref(['', '', '', '', '', ''])
 const error = ref('')
@@ -64,6 +65,7 @@ async function submit() {
     })
     setToken(result.accessToken)
     setUserId(result.user.id)
+    await claimSession()
     const me = await request<{ schoolId: string | null; questionnaireComplete: boolean }>('/auth/me')
     if (!me.schoolId) {
       uni.redirectTo({ url: '/pages/school/index' })
