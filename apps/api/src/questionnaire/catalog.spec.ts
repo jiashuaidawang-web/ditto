@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { normalizeInterests } from './catalog'
+import { LOCK_LINE, QUESTIONNAIRE, normalizeInterests } from './catalog'
 
 describe('interest tree', () => {
   it('requires a specialty for each structured hobby in selection order', () => {
@@ -26,5 +26,14 @@ describe('interest tree', () => {
   it('rejects a structured hobby with no specialty', () => {
     const result = normalizeInterests(['cooking', 'custom:滑板'], {})
     assert.equal(result.ok, false)
+  })
+
+  it('uses the wax-seal lock sentence and drops the old privacy line', () => {
+    assert.equal(LOCK_LINE, '私密，只用来为你匹配')
+    const privacies = QUESTIONNAIRE.steps.flatMap((step) =>
+      'privacy' in step && step.privacy ? [step.privacy] : [],
+    )
+    assert.equal(privacies.includes('仅用于匹配，不会公开展示'), false)
+    assert.equal(privacies.includes(LOCK_LINE), true)
   })
 })

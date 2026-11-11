@@ -14,7 +14,7 @@
 
       <view v-else-if="!opened" class="envelope" :class="{ opening }" @click="openEnvelope">
         <view class="flap"></view>
-        <view class="seal">💌</view>
+        <view class="wax-seal seal"></view>
         <view class="envelope-copy">
           <text class="h2">本周见面方案</text>
           <text class="lead">点一下拆开</text>
@@ -29,8 +29,10 @@
           </view>
           <view class="rc-kicker">本周见面方案</view>
           <view class="rc-illu">
-            <view class="flap"></view>
-            <view class="seal">💌</view>
+            <view class="letter-sheet">
+              <view class="letter-flap"></view>
+              <view class="wax-seal"></view>
+            </view>
           </view>
           <view class="rc-identity">
             <view class="rc-name">{{ card.peerName }}</view>
@@ -62,7 +64,7 @@
               <text class="s-brand">不如见一面</text>
               <text class="s-en">Better meet IRL</text>
               <text class="s-kicker">本周见面方案</text>
-              <view class="s-illu">💌</view>
+              <view class="s-illu"><view class="wax-seal mini"></view></view>
               <text class="s-name">{{ card.peerName }}</text>
               <text class="s-meta">{{ card.schoolName }} · {{ card.gradeLabel }}</text>
               <text class="s-reason">「{{ card.reason }}」</text>
@@ -92,7 +94,9 @@ import { onLoad } from '@dcloudio/uni-app'
 import QRCode from 'qrcode'
 import BrandLockup from '../../components/BrandLockup.vue'
 import { request } from '../../api/http'
+import { LOCK_LINE } from '../../copy'
 import { renderSharePng, type ShareRatio } from '../../share/poster'
+import { tokenColor } from '../../styles/palette'
 
 interface Card {
   token: string
@@ -133,7 +137,7 @@ async function load() {
       qr.value = await QRCode.toDataURL(card.value.url, {
         margin: 0,
         width: 216,
-        color: { dark: '#1F1A24', light: '#FFFFFF' },
+        color: { dark: tokenColor('ink'), light: tokenColor('paper') },
       })
     }
     if (prefersReducedMotion()) opened.value = true
@@ -211,7 +215,7 @@ function goWaiting() {
 }
 
 function showLock() {
-  showToast('报告里没有联系方式，只用于确认这次见面')
+  showToast(LOCK_LINE)
 }
 
 function showToast(text: string) {
@@ -225,23 +229,23 @@ function showToast(text: string) {
 <style scoped>
 .rc-scroll {
   flex: 1;
-  padding: 12px 16px 140px;
+  padding: 12px 16px 160px;
 }
 
 .report-card,
 .share-canvas,
 .empty-card {
-  color: #14203a;
+  color: var(--color-ink);
 }
 
 .report-card {
   position: relative;
   overflow: hidden;
   padding: 24px 20px 20px;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 16px;
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.94), rgba(214, 230, 255, 0.88));
-  box-shadow: 0 16px 36px rgba(7, 22, 68, 0.22);
+  border: 1px solid var(--color-track);
+  border-radius: var(--radius-envelope);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-envelope);
 }
 
 .rc-brand {
@@ -249,7 +253,9 @@ function showToast(text: string) {
   flex-direction: column;
 }
 
-.rc-brand .zh {
+.rc-brand .zh,
+.s-brand {
+  color: var(--color-ink);
   font-size: 15px;
   font-weight: 700;
 }
@@ -258,28 +264,25 @@ function showToast(text: string) {
 .s-en,
 .share-hint,
 .rc-cta-hint {
-  color: #5d6b86;
-  font-size: 10px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
 }
 
 .rc-kicker,
 .s-kicker {
   margin: 10px 0 14px;
-  color: #e40089;
+  color: var(--color-wax);
   font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .rc-illu,
 .s-illu {
   display: grid;
-  height: 120px;
+  height: 132px;
   place-items: center;
   margin-bottom: 16px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(126, 182, 255, 0.55), rgba(47, 111, 228, 0.35));
-  font-size: 36px;
 }
 
 .rc-identity,
@@ -292,7 +295,8 @@ function showToast(text: string) {
 
 .rc-name,
 .s-name {
-  font-size: 20px;
+  color: var(--color-ink);
+  font-size: 22px;
   font-weight: 700;
 }
 
@@ -305,58 +309,65 @@ function showToast(text: string) {
 }
 
 .pill {
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.75);
-  color: #163a9a;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-capsule);
+  color: var(--color-on-capsule);
   font-size: 12px;
   font-weight: 500;
 }
 
 .rc-reason {
   margin: 16px 0;
+  color: var(--color-ink);
   font-size: 22px;
-  font-weight: 600;
-  line-height: 1.35;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.rc-reason::before,
+.rc-reason::after {
+  color: var(--color-wax);
 }
 
 .rc-reason::before {
   content: '“';
-  color: #e40089;
 }
 
 .rc-reason::after {
   content: '”';
-  color: #e40089;
 }
 
 .rc-suggest {
   padding: 14px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.82);
+  border-radius: var(--radius-lg);
+  background: var(--color-paper);
 }
 
 .suggest-label {
-  color: #7b879c;
-  font-size: 10px;
+  color: var(--color-text-tertiary);
+  font-size: 11px;
   letter-spacing: 0.08em;
 }
 
 .suggest-main,
 .s-suggest {
   margin-top: 6px;
+  color: var(--color-ink);
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .rc-tags text {
   display: inline-block;
   margin: 8px 6px 0 0;
   padding: 3px 10px;
-  border-radius: 999px;
-  background: rgba(228, 0, 137, 0.12);
-  color: #b8006c;
+  border-radius: var(--radius-pill);
+  background: var(--color-wax-soft);
+  color: var(--color-wax);
   font-size: 12px;
+  font-weight: 500;
 }
 
 .rc-footer,
@@ -373,17 +384,17 @@ function showToast(text: string) {
   width: 72px;
   height: 72px;
   border-radius: 8px;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .share-section {
   margin-top: 28px;
-  color: #fff;
+  color: var(--color-ink);
 }
 
 .share-section .h3 {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .share-frame {
@@ -391,7 +402,8 @@ function showToast(text: string) {
   margin-top: 12px;
   overflow: hidden;
   aspect-ratio: 1 / 1;
-  border-radius: 12px;
+  border: 1px solid var(--color-track);
+  border-radius: var(--radius-lg);
 }
 
 .share-canvas {
@@ -399,34 +411,23 @@ function showToast(text: string) {
   flex-direction: column;
   height: 100%;
   padding: 20px;
-  background: linear-gradient(180deg, #7eb6ff, #163a9a 70%, #0b1d55);
-  color: #fff;
-}
-
-.s-brand,
-.s-name,
-.s-reason,
-.s-suggest {
-  color: #fff;
+  background: var(--color-paper);
+  color: var(--color-ink);
 }
 
 .s-meta,
-.s-en,
 .share-canvas .share-hint {
-  color: rgba(255, 255, 255, 0.74);
-}
-
-.s-kicker {
-  color: #e40089;
+  color: var(--color-text-secondary);
 }
 
 .envelope {
   position: relative;
   height: 420px;
   overflow: hidden;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.16);
-  box-shadow: 0 16px 36px rgba(7, 22, 68, 0.22);
+  border: 1px solid var(--color-track);
+  border-radius: var(--radius-envelope);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-envelope);
 }
 
 .envelope .flap {
@@ -435,10 +436,10 @@ function showToast(text: string) {
   right: 0;
   left: 0;
   height: 46%;
-  background: rgba(255, 255, 255, 0.28);
+  background: color-mix(in srgb, var(--color-track) 78%, var(--color-surface));
   clip-path: polygon(0 0, 100% 0, 50% 100%);
   transform-origin: top center;
-  transition: transform 1000ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 1000ms var(--ease-out-expo);
 }
 
 .envelope.opening .flap {
@@ -447,30 +448,38 @@ function showToast(text: string) {
 
 .envelope .seal {
   position: absolute;
-  top: 42%;
+  top: 38%;
   left: 50%;
-  display: grid;
-  width: 72px;
-  height: 72px;
-  place-items: center;
-  margin-left: -36px;
-  border-radius: 50%;
-  background: #e40089;
-  font-size: 32px;
+  width: 84px;
+  height: 84px;
+  margin-left: -42px;
+}
+
+.envelope .seal::after {
+  inset: 18px;
 }
 
 .envelope-copy {
   position: absolute;
-  right: 0;
+  right: 16px;
   bottom: 36px;
-  left: 0;
-  color: #fff;
+  left: 16px;
+  color: var(--color-ink);
   text-align: center;
+}
+
+.envelope-copy .h2,
+.envelope-copy .lead {
+  display: block;
+}
+
+.envelope-copy .lead {
+  color: var(--color-text-secondary);
 }
 
 .empty-card {
   padding: 28px 16px;
-  color: #fff;
+  color: var(--color-ink);
   text-align: center;
 }
 

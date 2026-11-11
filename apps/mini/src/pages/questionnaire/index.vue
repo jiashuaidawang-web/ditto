@@ -13,15 +13,14 @@
     </view>
 
     <view class="q-body">
-      <view class="bubble-label">不如见一面</view>
-      <view class="bubble" v-if="current.id === 'interests'">你有哪些<text class="em">爱好和兴趣</text>？</view>
-      <view class="bubble" v-else-if="current.id === 'availability'">这周你<text class="em">什么时候方便见面</text>？</view>
-      <view class="bubble" v-else-if="current.id === 'height'">你有多<text class="em">高</text>？</view>
-      <view class="bubble" v-else-if="current.id === 'heightMatch'">你希望对方大概<text class="em">多高</text>？</view>
-      <view class="bubble" v-else-if="current.kind === 'specialty'">{{ current.title }}</view>
-      <view class="bubble" v-else>{{ current.title }}</view>
-      <view class="bubble-hint" v-if="'caption' in current && current.caption && current.id !== 'height'">{{ current.caption }}</view>
-      <view class="privacy" v-if="'privacy' in current && current.privacy">🔒 {{ current.privacy }}</view>
+      <view class="q-title" v-if="current.id === 'interests'">你有哪些<text class="em">爱好和兴趣</text>？</view>
+      <view class="q-title" v-else-if="current.id === 'availability'">这周你<text class="em">什么时候方便见面</text>？</view>
+      <view class="q-title" v-else-if="current.id === 'height'">你有多<text class="em">高</text>？</view>
+      <view class="q-title" v-else-if="current.id === 'heightMatch'">你希望对方大概<text class="em">多高</text>？</view>
+      <view class="q-title" v-else-if="current.kind === 'specialty'">{{ current.title }}</view>
+      <view class="q-title" v-else>{{ current.title }}</view>
+      <view class="q-caption" v-if="'caption' in current && current.caption && current.id !== 'height'">{{ current.caption }}</view>
+      <view class="q-lockline" v-if="'privacy' in current && current.privacy">{{ current.privacy }}</view>
 
       <view v-if="loading" class="skeleton"></view>
       <view v-else-if="current.id === 'height' || current.id === 'heightMatch'" class="height-stage">
@@ -202,6 +201,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import BrandLockup from '../../components/BrandLockup.vue'
 import { request } from '../../api/http'
+import { LOCK_LINE } from '../../copy'
 import { saveDraft, track } from '../../track'
 
 interface Option {
@@ -505,7 +505,7 @@ function confirmOther(hobby: string) {
 }
 
 function showLock() {
-  showToast('这些回答只用于匹配，不会公开联系方式')
+  showToast(LOCK_LINE)
 }
 
 function goBack() {
@@ -788,21 +788,16 @@ function showToast(text: string) {
 </script>
 
 <style scoped>
-.privacy {
-  margin: 8px 0 14px;
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 11px;
-  text-align: center;
-}
 .illustration {
-  margin-top: 12px;
-  width: min(280px, 100%);
-  aspect-ratio: 1;
   display: grid;
+  width: min(220px, 100%);
+  aspect-ratio: 4 / 3;
+  margin-top: 12px;
   place-items: center;
-  border-radius: 22px;
-  background: linear-gradient(160deg, #6ec8ff, #3aa0ef 40%, #7ec8ff);
-  font-size: 96px;
+  border: 1px solid var(--color-track);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  font-size: 64px;
 }
 .photo-grid {
   display: grid;
@@ -814,14 +809,16 @@ function showToast(text: string) {
   display: grid;
   aspect-ratio: 1;
   place-items: center;
-  border: 1px dashed rgba(255, 255, 255, 0.35);
-  border-radius: 16px;
-  background: rgba(12, 36, 82, 0.42);
+  border: 1px dashed var(--color-track);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
   font-size: 28px;
 }
 .photo-slot.filled {
   border-style: solid;
-  background: linear-gradient(160deg, #6ec8ff, #3aa0ef);
+  border-color: var(--color-wax);
+  background: var(--color-wax-soft);
 }
 .error {
   position: absolute;
@@ -839,9 +836,10 @@ function showToast(text: string) {
   align-self: center;
   margin-bottom: 12px;
   padding: 8px 18px;
-  border-radius: 999px;
-  background: #fff;
-  color: #1a2744;
+  border: 1px solid var(--color-track);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink);
   font-size: 22px;
   font-weight: 700;
 }
@@ -849,9 +847,9 @@ function showToast(text: string) {
   position: relative;
   height: 78px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 18px;
-  background: rgba(6, 18, 48, 0.62);
+  border: 1px solid var(--color-track);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
   touch-action: none;
 }
 .ruler-clip.dim { opacity: 0.4; }
@@ -872,14 +870,14 @@ function showToast(text: string) {
   left: 0;
   width: 1px;
   height: 14px;
-  background: rgba(255, 255, 255, 0.45);
+  background: color-mix(in srgb, var(--color-ink) 28%, var(--color-track));
 }
-.tick.major { height: 26px; background: rgba(255, 255, 255, 0.85); }
+.tick.major { height: 26px; background: var(--color-ink); }
 .tick-label {
   position: absolute;
   bottom: 42px;
   left: 0;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-secondary);
   font-size: 10px;
   transform: translateX(-50%);
   white-space: nowrap;
@@ -892,7 +890,7 @@ function showToast(text: string) {
   z-index: 2;
   width: 3px;
   border-radius: 2px;
-  background: #e40089;
+  background: var(--color-wax);
   transform: translateX(-50%);
 }
 .range-band {
@@ -900,36 +898,42 @@ function showToast(text: string) {
   top: 16px;
   bottom: 16px;
   border-radius: 8px;
-  background: rgba(228, 0, 137, 0.28);
+  background: var(--color-wax-soft);
 }
 .unit-row { display: flex; justify-content: flex-end; margin-top: 12px; }
 .unit-toggle {
   display: inline-flex;
   padding: 3px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.22);
+  border-radius: var(--radius-pill);
+  background: var(--color-track);
 }
 .unit-toggle button {
   margin: 0;
   padding: 8px 14px;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--color-text-secondary);
   font-size: 13px;
   line-height: 1;
 }
-.unit-toggle button.on { background: #fff; color: #1a2744; font-weight: 700; }
+.unit-toggle button.on {
+  background: var(--color-capsule);
+  color: var(--color-on-capsule);
+  font-weight: 700;
+}
 .dont-care {
   flex: 1;
   height: 52px;
   margin: 0;
   border: none;
-  border-radius: 999px;
-  background: #e40089;
-  color: #fff;
+  border-radius: var(--radius-pill);
+  background: var(--color-capsule);
+  color: var(--color-on-capsule);
   font-size: 16px;
   font-weight: 700;
 }
-.dont-care.on { box-shadow: inset 0 0 0 2px #fff; }
+.dont-care.on {
+  background: var(--color-wax);
+}
 </style>

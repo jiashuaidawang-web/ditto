@@ -24,6 +24,9 @@ export const HOBBIES: Choice[] = [
 
 export const HOBBY_IDS = HOBBIES.map((hobby) => hobby.id)
 
+/** Shown under private questions. Do not paraphrase. */
+export const LOCK_LINE = '私密，只用来为你匹配'
+
 const other: Choice = { id: 'other', label: '其他', emoji: '✎' }
 
 export const SPECIALTIES: Record<string, SpecialtyCard> = {
@@ -164,7 +167,7 @@ export const QUESTIONNAIRE = {
       id: 'student',
       kind: 'single',
       title: '你现在是学生吗？',
-      privacy: '仅用于匹配，不会公开展示',
+      privacy: LOCK_LINE,
       options: [
         { id: 'yes', label: '是的，我是学生', emoji: '🎓' },
         { id: 'no', label: '不是学生', emoji: '💼' },
@@ -185,7 +188,7 @@ export const QUESTIONNAIRE = {
       id: 'lookingFor',
       kind: 'single',
       title: '你想认识谁？',
-      privacy: '仅用于匹配，不会公开展示',
+      privacy: LOCK_LINE,
       options: [
         { id: 'men', label: '男生' },
         { id: 'women', label: '女生' },
@@ -240,7 +243,7 @@ export const QUESTIONNAIRE = {
       kind: 'multi',
       wide: true,
       title: '你的族裔背景是？',
-      privacy: '仅用于匹配，不会公开展示',
+      privacy: LOCK_LINE,
       options: [
         { id: 'han', label: '汉族' },
         { id: 'other_asian', label: '其他亚洲裔' },
@@ -258,7 +261,7 @@ export const QUESTIONNAIRE = {
       kind: 'multi',
       wide: true,
       title: '对对方的族裔有偏好吗？',
-      privacy: '仅用于匹配，不会公开展示',
+      privacy: LOCK_LINE,
       options: [
         { id: 'no_preference', label: '没有偏好' },
         { id: 'han', label: '汉族' },
@@ -272,7 +275,7 @@ export const QUESTIONNAIRE = {
         { id: 'skip', label: '不想说' },
       ] satisfies Choice[],
     },
-    { id: 'ageRange', kind: 'range', title: '你希望对方大概多大？', privacy: '仅用于匹配，不会公开展示' },
+    { id: 'ageRange', kind: 'range', title: '你希望对方大概多大？', privacy: LOCK_LINE },
     { id: 'height', kind: 'number', title: '你有多高？' },
     {
       id: 'heightMatch',

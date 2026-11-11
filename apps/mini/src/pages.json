@@ -23,19 +23,31 @@
     },
     {
       "path": "pages/school/index",
-      "style": { "navigationBarTitleText": "选择学校" }
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "选择学校"
+      }
     },
     {
       "path": "pages/questionnaire/index",
-      "style": { "navigationBarTitleText": "建档" }
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "建档"
+      }
     },
     {
       "path": "pages/waiting/index",
-      "style": { "navigationBarTitleText": "等待见面" }
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "等待见面"
+      }
     },
     {
       "path": "pages/report/index",
-      "style": { "navigationBarTitleText": "见面方案" }
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "见面方案"
+      }
     },
     {
       "path": "pages/verify/index",
@@ -57,7 +69,7 @@
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "不如见一面",
-    "navigationBarBackgroundColor": "#1e4f9e",
-    "backgroundColor": "#003d72"
+    "navigationBarBackgroundColor": "#FAF7F4",
+    "backgroundColor": "#FAF7F4"
   }
 }
