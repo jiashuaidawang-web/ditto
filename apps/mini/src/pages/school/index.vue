@@ -27,14 +27,12 @@
       </view>
       <view v-if="error" class="error">{{ error }}</view>
     </view>
-    <AppNav />
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import AppNav from '../../components/AppNav.vue'
 import BrandLockup from '../../components/BrandLockup.vue'
 import { request } from '../../api/http'
 import { LOCK_LINE } from '../../copy'
@@ -69,9 +67,3 @@ async function choose(schoolId: string) {
   }
 }
 </script>
-
-<style scoped>
-.q-body :deep(.nav) {
-  padding-bottom: 24px;
-}
-</style>

@@ -7,12 +7,13 @@
 ## 技术栈
 
 - `apps/mini`：uni-app Vue 3。演示用 H5，同一套工程可以出微信小程序
-- `apps/api`：NestJS 12、Prisma 7、PostgreSQL 16
+- `apps/api-java`：新的后端。Java 17、Spring Boot 4.1.1（`spring-boot-starter-web`，不用 WebFlux）、MySQL 8、Flyway、MyBatis-Plus。这一版先落 v1 表，并提供 `GET /health`
+- `apps/api`：NestJS 12、Prisma 7、PostgreSQL 16。当前 H5 预览仍请求这套接口
 - 登录：手机号或邮箱 OTP。手机号走 `AliyunSmsProvider`；邮箱只打日志
 - 通知：Drop 用同一条阿里云短信通道。邮箱通知是 stub
 - 时区：`Asia/Shanghai`。没有 Redis，cron 在 API 进程内
 
-细节见 [TECH.md](./TECH.md)。
+细节见 [TECH.md](./TECH.md)。Java 和 MySQL 的启动方式见 [DEPLOY.md](./DEPLOY.md) 和 [apps/api-java/README.md](./apps/api-java/README.md)。H5 在 Java 的问卷接口落地之前继续打 Nest。
 
 ## 环境
 

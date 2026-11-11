@@ -1,0 +1,29 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: ditto-api-java
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://127.0.0.1:3306/ditto?characterEncoding=utf8&connectionTimeZone=Asia/Shanghai&forceConnectionTimeZoneToSession=true}
+    username: ${SPRING_DATASOURCE_USERNAME:ditto}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    hikari:
+      # Let Flyway's connect-retries wait for MySQL. A fail-fast pool aborts startup first.
+      initialization-fail-timeout: 0
+      maximum-pool-size: 10
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    connect-retries: 30
+    connect-retries-interval: 2s
+  jackson:
+    time-zone: Asia/Shanghai
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
