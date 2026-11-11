@@ -1,0 +1,84 @@
+# CentOS 7 Docker host: MySQL 8 + Java API + optional static H5.
+# Same services as docker-compose.java.yml, plus seccomp:unconfined.
+# Compose v1 on this host does not support depends_on.condition or profiles.
+# The API retries Flyway while MySQL starts. restart brings it back if it loses the race.
+#
+#   cp deploy/.env.example deploy/.env
+#   docker-compose --env-file deploy/.env -f docker-compose.java.centos7.yml up -d --build mysql api-java
+#
+# Skip h5 when the existing static server already serves apps/mini/dist/build/h5.
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ditto-mysql
+    restart: unless-stopped
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ditto}
+      MYSQL_USER: ${MYSQL_USER:-ditto}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in deploy/.env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in deploy/.env}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+08:00
+      - --innodb-buffer-pool-size=256M
+      - --skip-log-bin
+      - --log-bin-trust-function-creators=1
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - ditto_mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  api-java:
+    build:
+      context: ./apps/api-java
+    image: ditto-api-java:local
+    container_name: ditto-api-java
+    restart: unless-stopped
+    security_opt:
+      - seccomp:unconfined
+    depends_on:
+      - mysql
+    environment:
+      SERVER_PORT: "8080"
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-ditto}?characterEncoding=utf8&connectionTimeZone=Asia/Shanghai&forceConnectionTimeZoneToSession=true"
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-ditto}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in deploy/.env}
+      JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Shanghai
+      TZ: Asia/Shanghai
+    ports:
+      - "${API_JAVA_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 36
+
+  h5:
+    image: nginx:1.27-alpine
+    container_name: ditto-h5
+    restart: unless-stopped
+    security_opt:
+      - seccomp:unconfined
+    ports:
+      - "${H5_PORT:-8088}:80"
+    volumes:
+      - ./apps/mini/dist/build/h5:/usr/share/nginx/html:ro
+      - ./deploy/nginx/h5.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1/"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  ditto_mysql:

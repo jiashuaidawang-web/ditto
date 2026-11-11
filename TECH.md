@@ -2,6 +2,8 @@
 
 周五（2026-11-14）验收以 H5 + 阿里云短信为准。微信小程序、订阅消息、学信网留在仓库里，不阻塞演示。
 
+新的后端记录是 `apps/api-java`（Java 17、Spring Boot 4.1.1、MySQL、Flyway、MyBatis-Plus）。下面 NestJS / Postgres 的章节仍描述预览里正在用的 API。H5 在 Java 的问卷和事件接口落地之前继续打 Nest。两套怎么同时跑见 [DEPLOY.md](./DEPLOY.md)。
+
 ## 周五短信
 
 手机号 OTP 和 Drop 匹配通知共用 `AliyunSmsProvider`（Dysmsapi `SendSms`，RPC HMAC-SHA1，`https://dysmsapi.aliyuncs.com/`）。
