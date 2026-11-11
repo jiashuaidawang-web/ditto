@@ -1,7 +1,10 @@
 <template>
   <view class="lockup" :class="variant">
-    <text class="lockup-zh">不如见一面</text>
-    <text class="lockup-en">Better meet IRL</text>
+    <view class="wax-seal mini"></view>
+    <view class="lockup-words">
+      <text class="lockup-zh">不如见一面</text>
+      <text class="lockup-en">Better meet IRL</text>
+    </view>
   </view>
 </template>
 
@@ -12,17 +15,29 @@ withDefaults(defineProps<{ variant?: 'stack' | 'compact' }>(), { variant: 'stack
 <style scoped>
 .lockup {
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.lockup.stack {
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lockup-words {
+  display: flex;
   flex-direction: column;
   align-items: flex-start;
 }
 
-.lockup.stack {
+.lockup.stack .lockup-words {
   align-items: center;
   text-align: center;
 }
 
 .lockup-zh {
-  color: #fff;
+  color: var(--color-ink);
   font-size: var(--font-size-h1);
   font-weight: 700;
   line-height: 1.3;
@@ -34,7 +49,7 @@ withDefaults(defineProps<{ variant?: 'stack' | 'compact' }>(), { variant: 'stack
 
 .lockup-en {
   margin-top: 1px;
-  color: rgba(255, 255, 255, 0.74);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
   font-weight: 400;
   line-height: 1.3;

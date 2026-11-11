@@ -1,4 +1,5 @@
 import QRCode from 'qrcode'
+import { tokenColor } from '../styles/palette'
 
 export type ShareRatio = '1:1' | '3:4'
 
@@ -16,6 +17,8 @@ export interface PosterFields {
   url: string
 }
 
+const FONT = '"Noto Sans SC", sans-serif'
+
 /** Friday UI calls this with 1:1 only. 3:4 stays available for internal export. */
 export async function renderSharePng(fields: PosterFields, ratio: ShareRatio = '1:1'): Promise<string> {
   const { width, height } = SIZES[ratio]
@@ -25,62 +28,98 @@ export async function renderSharePng(fields: PosterFields, ratio: ShareRatio = '
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('canvas unavailable')
 
-  const gradient = ctx.createLinearGradient(0, 0, 0, height)
-  gradient.addColorStop(0, '#7EB6FF')
-  gradient.addColorStop(0.45, '#2F6FE4')
-  gradient.addColorStop(1, '#0B1D55')
-  ctx.fillStyle = gradient
+  if (document.fonts?.load) {
+    await document.fonts.load(`700 64px ${FONT}`)
+    await document.fonts.load(`400 32px ${FONT}`)
+  }
+
+  const paper = tokenColor('paper')
+  const wax = tokenColor('wax')
+  const ink = tokenColor('ink')
+  const track = tokenColor('track')
+
+  ctx.fillStyle = paper
   ctx.fillRect(0, 0, width, height)
 
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.16)'
-  ctx.beginPath()
-  ctx.arc(width * 0.82, height * 0.18, 180, 0, Math.PI * 2)
-  ctx.fill()
-
   const pad = 72
-  ctx.fillStyle = '#FFFFFF'
-  ctx.font = '700 54px "PingFang SC", "Microsoft YaHei", sans-serif'
+  drawSeal(ctx, width - pad - 36, 108, 36, wax, paper)
+
+  ctx.fillStyle = ink
+  ctx.font = `700 54px ${FONT}`
   ctx.fillText('不如见一面', pad, 120)
-  ctx.fillStyle = 'rgba(255,255,255,0.74)'
-  ctx.font = '400 28px "PingFang SC", "Microsoft YaHei", sans-serif'
-  ctx.fillText('Better meet IRL', pad, 164)
-  ctx.fillStyle = '#E40089'
-  ctx.font = '600 36px "PingFang SC", "Microsoft YaHei", sans-serif'
-  ctx.fillText('本周见面方案', pad, 230)
+  ctx.fillStyle = ink
+  ctx.globalAlpha = 0.62
+  ctx.font = `400 28px ${FONT}`
+  ctx.fillText('Better meet IRL', pad, 168)
+  ctx.globalAlpha = 1
+  ctx.fillStyle = wax
+  ctx.font = `700 36px ${FONT}`
+  ctx.fillText('本周见面方案', pad, 236)
 
-  ctx.fillStyle = '#FFFFFF'
-  ctx.font = '700 64px "PingFang SC", "Microsoft YaHei", sans-serif'
-  ctx.fillText(fields.peerName, pad, 380)
-  ctx.fillStyle = '#D7E6FF'
-  ctx.font = '500 32px "PingFang SC", "Microsoft YaHei", sans-serif'
-  wrapText(ctx, `${fields.schoolName} · ${fields.gradeLabel}`, pad, 440, width - pad * 2, 44)
+  ctx.fillStyle = ink
+  ctx.font = `700 64px ${FONT}`
+  ctx.fillText(fields.peerName, pad, 390)
+  ctx.globalAlpha = 0.62
+  ctx.font = `500 32px ${FONT}`
+  wrapText(ctx, `${fields.schoolName} · ${fields.gradeLabel}`, pad, 450, width - pad * 2, 44)
+  ctx.globalAlpha = 1
 
-  ctx.fillStyle = '#FFFFFF'
-  ctx.font = '600 40px "PingFang SC", "Microsoft YaHei", sans-serif'
-  wrapText(ctx, fields.reason, pad, 580, width - pad * 2, 56, 2)
+  ctx.fillStyle = wax
+  ctx.font = `700 40px ${FONT}`
+  ctx.fillText('“', pad, 560)
+  ctx.fillStyle = ink
+  ctx.font = `700 40px ${FONT}`
+  wrapText(ctx, fields.reason, pad + 36, 560, width - pad * 2 - 36, 56, 3)
 
-  ctx.fillStyle = 'rgba(255,255,255,0.78)'
-  ctx.font = '400 32px "PingFang SC", "Microsoft YaHei", sans-serif'
+  ctx.globalAlpha = 0.72
+  ctx.font = `400 32px ${FONT}`
   ctx.fillText(fields.suggestion, pad, height - 280)
+  ctx.globalAlpha = 1
 
   const qrUrl = await QRCode.toDataURL(fields.url, {
     margin: 0,
     width: 216,
-    color: { dark: '#0B1D55', light: '#FFFFFF' },
+    color: { dark: ink, light: paper },
   })
   const qr = await loadImage(qrUrl)
   const qrSize = 216
   const qrX = width - pad - qrSize
   const qrY = height - pad - qrSize
-  ctx.fillStyle = '#FFFFFF'
+  ctx.fillStyle = paper
+  ctx.strokeStyle = track
+  ctx.lineWidth = 2
   ctx.fillRect(qrX - 16, qrY - 16, qrSize + 32, qrSize + 32)
+  ctx.strokeRect(qrX - 16, qrY - 16, qrSize + 32, qrSize + 32)
   ctx.drawImage(qr, qrX, qrY, qrSize, qrSize)
-  ctx.fillStyle = 'rgba(255,255,255,0.78)'
-  ctx.font = '400 24px "PingFang SC", "Microsoft YaHei", sans-serif'
+  ctx.fillStyle = ink
+  ctx.globalAlpha = 0.72
+  ctx.font = `400 24px ${FONT}`
   ctx.fillText('打开方案', pad, qrY + 48)
   ctx.fillText('不如见一面', pad, qrY + 88)
+  ctx.globalAlpha = 1
 
   return canvas.toDataURL('image/png')
+}
+
+function drawSeal(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  radius: number,
+  wax: string,
+  paper: string,
+) {
+  ctx.fillStyle = wax
+  ctx.beginPath()
+  ctx.arc(x, y, radius, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.strokeStyle = paper
+  ctx.globalAlpha = 0.7
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.arc(x, y, radius * 0.62, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.globalAlpha = 1
 }
 
 function wrapText(

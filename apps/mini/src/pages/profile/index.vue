@@ -20,9 +20,18 @@
       <input class="field" v-model="interests" />
 
       <text class="label">空闲（上海时间，再点一次取消）</text>
-      <button class="ghost" @click="wed = !wed">{{ wed ? '已选' : '未选' }} 周三 19:00–21:00</button>
-      <button class="ghost" @click="sat = !sat">{{ sat ? '已选' : '未选' }} 周六 14:00–17:00</button>
-      <button class="ghost" @click="sun = !sun">{{ sun ? '已选' : '未选' }} 周日 14:00–17:00</button>
+      <button class="chip avail" :class="{ selected: wed }" @click="wed = !wed">
+        <text class="chip-label">周三 19:00–21:00</text>
+        <text class="check">{{ wed ? '✓' : '' }}</text>
+      </button>
+      <button class="chip avail" :class="{ selected: sat }" @click="sat = !sat">
+        <text class="chip-label">周六 14:00–17:00</text>
+        <text class="check">{{ sat ? '✓' : '' }}</text>
+      </button>
+      <button class="chip avail" :class="{ selected: sun }" @click="sun = !sun">
+        <text class="chip-label">周日 14:00–17:00</text>
+        <text class="check">{{ sun ? '✓' : '' }}</text>
+      </button>
 
       <button class="primary" @click="save">保存</button>
       <view v-if="message" class="todo">{{ message }}</view>
@@ -111,3 +120,9 @@ async function save() {
   }
 }
 </script>
+
+<style scoped>
+.avail {
+  margin-top: 10px;
+}
+</style>
